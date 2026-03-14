@@ -24,8 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,16 +43,6 @@ jobs:
           sudo apt-get install -y -qq ffmpeg
         env:
           BATCH_MODE: ${{ github.event.inputs.batch_mode == 'true' || 'false' }}
-
-      - name: Restore React app build from cache
-        id: restore-app
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            dist/assets
-            dist/index.html
-          key: react-app-${{ github.sha }}
-          enableCrossOsArchive: true
 
       - name: Convert livestreams to episodes
         env:
@@ -77,24 +65,12 @@ jobs:
           RSS_FEED_PATH: dist/rss.xml
         run: npx -y tsx scripts/verify-rss-feed.ts
 
-      - name: Save React app build to cache
-        id: save-app
-        uses: actions/cache/save@v4
+      - name: Upload RSS files as workflow artifacts
+        uses: actions/upload-artifact@v4
         with:
+          name: rss-feed
           path: |
-            dist/assets
-            dist/index.html
-          key: react-app-${{ github.sha }}
-          enableCrossOsArchive: true
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        id: deployment
+            dist/rss.xml
+            dist/rss-health.json
+            dist/.nojekyll
+          retention-days: 7
