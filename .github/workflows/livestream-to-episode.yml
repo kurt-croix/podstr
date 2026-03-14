@@ -46,6 +46,16 @@ jobs:
         env:
           BATCH_MODE: ${{ github.event.inputs.batch_mode == 'true' || 'false' }}
 
+      - name: Restore React app build from cache
+        id: restore-app
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            dist/assets
+            dist/index.html
+          key: react-app-${{ github.sha }}
+          enableCrossOsArchive: true
+
       - name: Convert livestreams to episodes
         env:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
@@ -58,11 +68,6 @@ jobs:
             --batch-mode="${BATCH_MODE}" \
             --livestream-ids="${LIVESTREAM_IDS}"
 
-      - name: Build React app
-        run: |
-          npm run build
-          cp dist/index.html dist/404.html
-
       - name: Generate RSS feed
         run: npx -y tsx scripts/build-rss.ts
 
@@ -71,6 +76,16 @@ jobs:
           PODCAST_CREATOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
           RSS_FEED_PATH: dist/rss.xml
         run: npx -y tsx scripts/verify-rss-feed.ts
+
+      - name: Save React app build to cache
+        id: save-app
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            dist/assets
+            dist/index.html
+          key: react-app-${{ github.sha }}
+          enableCrossOsArchive: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
