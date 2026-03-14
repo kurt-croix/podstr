@@ -594,6 +594,13 @@ async function buildRSS() {
       // Fetch trailers from multiple relays
       trailers = await fetchPodcastTrailersMultiRelay(relays, creatorPubkeyHex);
 
+      // Skip RSS generation if no episodes exist
+      if (episodes.length === 0) {
+        console.log('⏭️  No episodes found - skipping RSS generation');
+        console.log('ℹ️  This prevents 404 errors when all episodes are already converted');
+        process.exit(0);
+      }
+
     } finally {
       // Close all relay connections
       for (const { url, relay } of relays) {

@@ -24,8 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -67,14 +65,33 @@ jobs:
           RSS_FEED_PATH: dist/rss.xml
         run: npx -y tsx scripts/verify-rss-feed.ts
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload RSS artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload RSS files as artifacts
+        uses: actions/upload-artifact@v4
         with:
-          path: dist
+          name: rss-files
+          path: |
+            dist/rss.xml
+            dist/rss-health.json
+            dist/.nojekyll
 
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        id: deployment
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Download RSS files
+        uses: actions/download-artifact@v4
+        with:
+          name: rss-files
+
+      - name: Move RSS files to root
+        run: |
+          mv rss.xml rss-health.json .nojekyll .
+
+      - name: Commit and push RSS updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add rss.xml rss-health.json .nojekyll
+          git diff --staged --quiet || git commit -m "Update RSS feed [skip ci]"
+          git push
