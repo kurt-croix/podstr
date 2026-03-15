@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,6 +58,11 @@ jobs:
             --batch-mode="${BATCH_MODE}" \
             --livestream-ids="${LIVESTREAM_IDS}"
 
+      - name: Build React app
+        run: |
+          npm run build
+          cp dist/index.html dist/404.html
+
       - name: Generate RSS feed
         run: npx -y tsx scripts/build-rss.ts
 
@@ -65,12 +72,14 @@ jobs:
           RSS_FEED_PATH: dist/rss.xml
         run: npx -y tsx scripts/verify-rss-feed.ts
 
-      - name: Upload RSS files as workflow artifacts
-        uses: actions/upload-artifact@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: rss-feed
-          path: |
-            dist/rss.xml
-            dist/rss-health.json
-            dist/.nojekyll
-          retention-days: 7
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        id: deployment
