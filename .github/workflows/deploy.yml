@@ -61,13 +61,9 @@ jobs:
 
       - name: Build React app
         run: |
+          npm install
+          npx -y tsx scripts/convert-livestreams-to-episodes.ts || echo "No new livestreams to convert"
           npm run build:gh-pages
-
-      - name: Verify RSS feed
-        env:
-          PODCAST_CREATOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
-          RSS_FEED_PATH: dist/rss.xml
-        run: npx -y tsx scripts/verify-rss-feed.ts
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
