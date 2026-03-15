@@ -40,6 +40,7 @@ jobs:
       - name: Install dependencies and build
         run: |
           npm install
+          npx -y tsx scripts/convert-livestreams-to-episodes.ts || echo "No new livestreams to convert"
           npm run build:gh-pages
 
       - name: Generate RSS feed with Nostr integration
