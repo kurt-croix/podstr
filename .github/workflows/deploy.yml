@@ -37,10 +37,17 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies and build
-        run: |
-          npm ci
-          npm run build
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Convert livestreams to episodes
+        run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
+        env:
+          PODCAST_CREATOR_NPUB: ${{ secrets.PODCAST_CREATOR_NPUB }}
+          NOSTR_PRIVATE_KEY: ${{ secrets.PODCAST_PRIVATE_KEY }}
+
+      - name: Build RSS feed and React app
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
