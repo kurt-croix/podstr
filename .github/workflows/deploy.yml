@@ -37,33 +37,10 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install ffmpeg
-        if: env.BATCH_MODE == 'true'
+      - name: Install dependencies and build
         run: |
-          sudo apt-get install -y -qq ffmpeg
-        env:
-          BATCH_MODE: ${{ github.event.inputs.batch_mode == 'true' || 'false' }}
-
-      - name: Convert livestreams to episodes
-        env:
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          NBUNKSEC: ${{ secrets.NBUNKSEC }}
-          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
-          BATCH_MODE: ${{ github.event.inputs.batch_mode || 'false' }}
-          LIVESTREAM_IDS: ${{ github.event.inputs.livestream_ids || '' }}
-        run: |
-          npx -y tsx scripts/convert-livestreams-to-episodes.ts \
-            --batch-mode="${BATCH_MODE}" \
-            --livestream-ids="${LIVESTREAM_IDS}"
-
-      - name: Build React app
-        run: |
-          npm install
-          npx -y tsx scripts/convert-livestreams-to-episodes.ts || echo "No new livestreams to convert"
-          npm run build:gh-pages
+          npm ci
+          npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
