@@ -43,7 +43,7 @@ jobs:
       - name: Convert livestreams to episodes
         run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
         env:
-          PODCAST_CREATOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
+          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
 
       - name: Build RSS feed and React app
