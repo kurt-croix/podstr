@@ -8,6 +8,10 @@ import { PODCAST_CONFIG, PodcastConfig } from '../src/lib/podcastConfig.js';
 // Import OP3 utilities
 import { addOP3Prefix } from '../src/lib/op3Utils.js';
 
+// Polyfill WebSocket for Node.js
+import WebSocket from 'ws';
+globalThis.WebSocket = WebSocket as any;
+
 // Podcast kinds used by PODSTR
 const PODCAST_KINDS = {
   EPISODE: 30054, // Addressable Podcast episodes (editable, replaceable)
