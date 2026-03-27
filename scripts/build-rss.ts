@@ -20,6 +20,14 @@ const PODCAST_KINDS = {
 } as const;
 
 /**
+ * List of episode event IDs to ignore in RSS feed
+ */
+const IGNORED_EPISODES = [
+  '502924e649d343253746bdf322f2a4ed15db14005b3a15e7c22389bf6809d12d',
+  '85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f',
+];
+
+/**
  * Node-specific function to get creator pubkey in hex format
  */
 function getCreatorPubkeyHex(creatorNpub: string): string {
@@ -459,7 +467,9 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
   console.log(`✅ Found ${uniqueEvents.length} unique episodes from ${allResults.length} relays`);
 
   // Convert to PodcastEpisode format and sort by publishDate (newest first)
-  const episodes = uniqueEvents.map(event => eventToPodcastEpisode(event));
+  const episodes = uniqueEvents
+    .map(event => eventToPodcastEpisode(event))
+    .filter(episode => !IGNORED_EPISODES.includes(episode.id));
 
   return episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
 }
