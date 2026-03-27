@@ -24,6 +24,7 @@ const PODCAST_KINDS = {
  */
 const IGNORED_EPISODES = [
   'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County Commissioner's Meeting 3/19
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:135429e2-f5fd-46fa-a439-a3d8efe6e0b4', // Ray County Commissioner's Meeting 3/19
 ];
 
 /**
