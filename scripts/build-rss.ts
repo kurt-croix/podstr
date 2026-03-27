@@ -20,11 +20,11 @@ const PODCAST_KINDS = {
 } as const;
 
 /**
- * List of episode event IDs to ignore in RSS feed
+ * List of episode identifiers (d tags) to ignore in RSS feed
  */
 const IGNORED_EPISODES = [
-  '502924e649d343253746bdf322f2a4ed15db14005b3a15e7c22389bf6809d12d',
-  '85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f',
+  '65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County Commissioner's Meeting 3/19
+  '135429e2-f5fd-46fa-a439-a3d8efe6e0b4', // Testing final?????
 ];
 
 /**
