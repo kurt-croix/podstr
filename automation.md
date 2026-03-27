@@ -16,7 +16,7 @@ This plan outlines a complete implementation strategy for automatically converti
 ### Current System
 
 1. **Podcast Configuration**: Located at `/home/shepherd/Nextcloud/Projects/lab/podstr/src/lib/podcastConfig.ts`
-   - Creator npub: `npub17w98lrsg36nj0cckhxgd52wdlrgnx544lgy4jsg3fwpla7jtvlaqgjdrc6`
+   - Creator npub: `npub17w9wh8lrsg36nj0cckhxgd52wdlrgnx544lgy4jsg3fwpla7jtvlaqgjdrc6`
    - Episode kind: 30054 (addressable)
    - Uses Nostrify library for Nostr operations
 

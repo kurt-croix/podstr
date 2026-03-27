@@ -40,6 +40,35 @@ const console = new Console({
 });
 
 /**
+ * List of livestreams to ignore during conversion (naddr format)
+ */
+const IGNORED_LIVESTREAMS = [
+  'naddr1qvzqqqrkvupzppwlsg4gvkvll05pg0d3u8sm7tgk97nql359ce23t937vl8awjvlqqjrvdtxv9jnydp5956rgdec956rzc3c943x2ctx94nxxcfnvcengdtpvymrqql2p02',
+  'naddr1qvzqqqrkvupzppwlsg4gvkvll05pg0d3u8sm7tgk97nql359ce23t937vl8awjvlqqjr2vfcvgcxxwp595unjden956rzepc943rycmr95unjwryx3jngwpsx3nx2a3j9na',
+];
+
+/**
+ * Check if a livestream should be ignored by naddr
+ */
+function shouldIgnoreLivestream(livestream: NostrEvent): boolean {
+  try {
+    const dTag = livestream.tags.find(t => t[0] === 'd')?.[1];
+    if (!dTag) return false;
+
+    // Construct naddr for this livestream
+    const naddr = nip19.naddrEncode({
+      kind: 30311,
+      pubkey: livestream.pubkey,
+      identifier: dTag,
+    });
+
+    return IGNORED_LIVESTREAMS.includes(naddr);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Parse command line arguments
  */
 function parseArgs(): Partial<LivestreamConversionConfig> {
@@ -478,6 +507,22 @@ async function main() {
         console.log(`\\n📦 Processing batch group of ${group.length} event(s): ${groupEventIds}`);
 
         try {
+          // Check if any livestream in group is in ignore list
+          const hasIgnored = group.some(stream => shouldIgnoreLivestream(stream));
+          if (hasIgnored) {
+            console.log(`⏭️  Skipping group (contains ignored livestreams)`);
+            skippedCount.value += group.length;
+            group.forEach(stream => {
+              summaries.push({
+                livestreamAddress: `${stream.pubkey}:${stream.tags.find(t => t[0] === 'd')?.[1]}`,
+                title: stream.tags.find(([name]) => name === 'title')?.[1] || 'Untitled',
+                status: 'skipped',
+                reason: 'Ignored by configuration',
+              });
+            });
+            continue;
+          }
+
           // Check if any livestream in group has been converted
           const hasConverted = group.some(stream => isLivestreamConverted(stream, existingEpisodes));
 
@@ -574,6 +619,18 @@ async function main() {
         console.log(`\\n📌 Processing event: ${eventId} (d: ${dTag}, title: "${title}")`);
 
         try {
+          // Check if livestream is in ignore list
+          if (shouldIgnoreLivestream(livestream)) {
+            console.log(`⏭️  Skipping (ignored by configuration): ${dTag}`);
+            skippedCount.value++;
+            summaries.push({
+              livestreamAddress: `${livestream.pubkey}:${dTag}`,
+              title,
+              status: 'skipped',
+              reason: 'Ignored by configuration',
+            });
+            continue;
+          }
           // Check if already converted
           if (isLivestreamConverted(livestream, existingEpisodes)) {
             const dTag = livestream.tags.find(t => t[0] === 'd')?.[1];
