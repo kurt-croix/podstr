@@ -40,32 +40,18 @@ const console = new Console({
 });
 
 /**
- * List of livestreams to ignore during conversion (naddr format)
+ * List of livestreams to ignore during conversion (event IDs in hex format)
  */
 const IGNORED_LIVESTREAMS = [
-  'naddr1qvzqqqrkvupzppwlsg4gvkvll05pg0d3u8sm7tgk97nql359ce23t937vl8awjvlqqjrvdtxv9jnydp5956rgdec956rzc3c943x2ctx94nxxcfnvcengdtpvymrqql2p02',
-  'naddr1qvzqqqrkvupzppwlsg4gvkvll05pg0d3u8sm7tgk97nql359ce23t937vl8awjvlqqjr2vfcvgcxxwp595unjden956rzepc943rycmr95unjwryx3jngwpsx3nx2a3j9na',
+  '502924e649d343253746bdf322f2a4ed15db14005b3a15e7c22389bf6809d12d',
+  '85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f',
 ];
 
 /**
- * Check if a livestream should be ignored by naddr
+ * Check if a livestream should be ignored by event ID
  */
 function shouldIgnoreLivestream(livestream: NostrEvent): boolean {
-  try {
-    const dTag = livestream.tags.find(t => t[0] === 'd')?.[1];
-    if (!dTag) return false;
-
-    // Construct naddr for this livestream
-    const naddr = nip19.naddrEncode({
-      kind: 30311,
-      pubkey: livestream.pubkey,
-      identifier: dTag,
-    });
-
-    return IGNORED_LIVESTREAMS.includes(naddr);
-  } catch {
-    return false;
-  }
+  return IGNORED_LIVESTREAMS.includes(livestream.id);
 }
 
 /**
