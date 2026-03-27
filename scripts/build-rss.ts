@@ -469,7 +469,7 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
   // Convert to PodcastEpisode format and sort by publishDate (newest first)
   const episodes = uniqueEvents
     .map(event => eventToPodcastEpisode(event))
-    .filter(episode => !IGNORED_EPISODES.includes(episode.id));
+    .filter(episode => !IGNORED_EPISODES.includes(episode.guid));
 
   return episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
 }
