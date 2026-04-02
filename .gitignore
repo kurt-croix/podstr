@@ -37,3 +37,8 @@ dist-ssr
 .github/conversion-state.json
 conversion-state.json
 .temp-audio/
+.temp-audio-transcription/
+
+# Transcription temp files
+.episodes-to-transcribe.json
+.transcript-mapping.json

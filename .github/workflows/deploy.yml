@@ -15,7 +15,7 @@ on:
 
 # Sets permissions of GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,8 +44,23 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: npm ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install WhisperX
+        run: |
+          pip install git+https://github.com/m-bain/whisperx.git
 
       - name: Convert livestreams to episodes
         run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
@@ -51,9 +68,37 @@ jobs:
         env:
           LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+
+      - name: Transcribe audio with WhisperX
+        run: npx -y tsx scripts/transcribe-audio.ts
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        if: hashFiles('.episodes-to-transcribe.json') != ''
+
+      - name: Update episodes with transcript URLs
+        run: npx -y tsx scripts/update-episodes-with-transcripts.ts
+        env:
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+          RELAY_URL: "wss://nos.lol"
+        if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Build RSS feed and React app
         run: npm run build
+
+      - name: Commit transcripts
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add transcripts/
+          git add .transcript-mapping.json || true
+          git diff --staged --quiet || git commit -m "chore: add episode transcripts"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: hashFiles('transcripts/*') != ''
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
