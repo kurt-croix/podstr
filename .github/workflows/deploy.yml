@@ -12,6 +12,12 @@ on:
 
   # Allows you to run this workflow manually from Actions tab
   workflow_dispatch:
+    inputs:
+      retroactive_transcription:
+        description: 'Enable retroactive transcription for past episodes'
+        required: false
+        default: false
+        type: boolean
 
 # Sets permissions of GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -60,6 +66,15 @@ jobs:
       - name: Install WhisperX
         run: |
           pip install git+https://github.com/m-bain/whisperx.git
+
+      - name: Check past episodes for missing transcripts
+        run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
+        env:
+          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+          RETROACTIVE_TRANSCRIPTION: ${{ github.event.inputs.retroactive_transcription == 'true' }}
+        if: github.event.inputs.retroactive_transcription == 'true'
 
       - name: Convert livestreams to episodes
         run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
