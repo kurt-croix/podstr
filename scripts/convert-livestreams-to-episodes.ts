@@ -76,6 +76,58 @@ function parseArgs(): Partial<LivestreamConversionConfig> {
 }
 
 /**
+ * Check past episodes for missing transcripts
+ * Returns episode metadata for episodes that don't have transcripts
+ */
+async function findEpisodesNeedingTranscription(authorPubkey: string): Promise<EpisodeMetadata[]> {
+  console.log('🔍 Checking past episodes for missing transcripts...');
+
+  const relayUrl = 'wss://nos.lol';
+  const startTime = Date.now();
+
+  try {
+    const events = await queryRelay(relayUrl, {
+      kinds: [30054],
+      authors: [authorPubkey],
+      limit: 200,
+    });
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ Query completed in ${duration}s`);
+    console.log(`📊 Found ${events.length} episode(s)`);
+
+    // Filter episodes that don't have transcript tags
+    const episodesWithoutTranscripts: EpisodeMetadata[] = [];
+
+    events.forEach(event => {
+      const hasTranscript = event.tags.some(([name]) => name === 'transcript');
+
+      if (!hasTranscript) {
+        const dTag = event.tags.find(([name]) => name === 'd')?.[1];
+        const title = event.tags.find(([name]) => name === 'title')?.[1];
+        const audioUrl = event.tags.find(([name]) => name === 'audio')?.[1];
+
+        if (dTag && title && audioUrl) {
+          episodesWithoutTranscripts.push({
+            dTag,
+            title,
+            audioUrl,
+            timestamp: event.created_at,
+          });
+        }
+      }
+    });
+
+    console.log(`📝 Found ${episodesWithoutTranscripts.length} episode(s) without transcripts`);
+
+    return episodesWithoutTranscripts;
+  } catch (error) {
+    console.error('❌ Error fetching episodes:', error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
+/**
  * Fetch livestreams from Nostr
  */
 async function fetchLivestreams(_targetNpub: string, _since: number): Promise<NostrEvent[]> {
@@ -427,6 +479,26 @@ async function main() {
     // Create signer first to get the episode author pubkey
     const signerInfo = createSigner(config.nostrPrivateKey, config.nbunksec);
     console.log('🔑 Episode author pubkey:', signerInfo.pubkey.substring(0, 8) + '...');
+
+    // Check for retroactive transcription mode
+    const retroactiveTranscription = process.env.RETROACTIVE_TRANSCRIPTION === 'true';
+    if (retroactiveTranscription) {
+      console.log('\n🔄 Retroactive transcription mode enabled');
+      console.log('   Checking past episodes for missing transcripts...');
+
+      const episodesNeedingTranscription = await findEpisodesNeedingTranscription(signerInfo.pubkey);
+      episodesForTranscription.push(...episodesNeedingTranscription);
+
+      if (episodesNeedingTranscription.length > 0) {
+        await saveEpisodeMetadata(episodesForTranscription);
+        console.log(`💾 ${episodesNeedingTranscription.length} episode(s) queued for retroactive transcription`);
+        console.log('ℹ️  Skipping livestream conversion in retroactive mode');
+        process.exit(0);
+      } else {
+        console.log('✅ All past episodes already have transcripts');
+        process.exit(0);
+      }
+    }
 
     // Decode target npub for error messages
     let targetPubkey = '';
