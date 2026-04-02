@@ -63,3 +63,13 @@ export interface LivestreamGroup {
   hourKey: string;
   livestreams: NostrEvent[];
 }
+
+/**
+ * Episode metadata for transcription
+ */
+export interface EpisodeMetadata {
+  dTag: string;
+  title: string;
+  audioUrl: string;
+  timestamp: number;
+}

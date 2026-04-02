@@ -17,9 +17,11 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { NRelay1 } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { WebSocket } from 'ws';
+import { promises as fs } from 'fs';
 import type {
   LivestreamConversionConfig,
   LivestreamConversionSummary,
+  EpisodeMetadata,
 } from './lib/conversion-types';
 import { loadConversionState, saveConversionState } from './lib/conversion-state';
 import {
@@ -376,6 +378,15 @@ async function publishEpisode(event: NostrEvent): Promise<void> {
 }
 
 /**
+ * Save episode metadata for transcription
+ */
+async function saveEpisodeMetadata(episodes: EpisodeMetadata[]): Promise<void> {
+  const filePath = '.episodes-to-transcribe.json';
+  await fs.writeFile(filePath, JSON.stringify(episodes, null, 2));
+  console.log(`💾 Episode metadata saved to: ${filePath}`);
+}
+
+/**
  * Main conversion process
  */
 async function main() {
@@ -383,6 +394,9 @@ async function main() {
 
   // Parse arguments
   const args = parseArgs();
+
+  // Track episode metadata for transcription
+  const episodesForTranscription: EpisodeMetadata[] = [];
 
   // Get configuration from environment
   const config: LivestreamConversionConfig = {
@@ -552,6 +566,17 @@ async function main() {
           // Publish to Nostr
           await publishEpisode(episode);
 
+          // Track episode metadata for transcription
+          const audioUrl = episode.tags.find(t => t[0] === 'audio')?.[1];
+          if (audioUrl) {
+            episodesForTranscription.push({
+              dTag: episode.tags.find(t => t[0] === 'd')?.[1] || 'unknown',
+              title: episode.tags.find(t => t[0] === 'title')?.[1] || 'Untitled',
+              audioUrl,
+              timestamp: Math.floor(Date.now() / 1000),
+            });
+          }
+
           // Update summaries
           convertedCount.value += group.length;
           group.forEach(stream => {
@@ -650,6 +675,17 @@ async function main() {
           // Publish to Nostr
           await publishEpisode(episode);
 
+          // Track episode metadata for transcription
+          const audioUrl = episode.tags.find(t => t[0] === 'audio')?.[1];
+          if (audioUrl) {
+            episodesForTranscription.push({
+              dTag: episode.tags.find(t => t[0] === 'd')?.[1] || 'unknown',
+              title: episode.tags.find(t => t[0] === 'title')?.[1] || 'Untitled',
+              audioUrl,
+              timestamp: Math.floor(Date.now() / 1000),
+            });
+          }
+
           // Update summaries
           convertedCount.value++;
           const dTag = livestream.tags.find(t => t[0] === 'd')?.[1];
@@ -688,6 +724,12 @@ async function main() {
 
     // Save state
     await saveConversionState(state);
+
+    // Save episode metadata for transcription (only if there are successful conversions)
+    if (episodesForTranscription.length > 0) {
+      await saveEpisodeMetadata(episodesForTranscription);
+      console.log(`📝 ${episodesForTranscription.length} episode(s) queued for transcription`);
+    }
 
     // Log summary
     console.log('\n📊 Conversion Summary:');
