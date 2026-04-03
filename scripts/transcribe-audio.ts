@@ -73,8 +73,8 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 
   console.log(`🎙️  Running WhisperX on: ${audioPath}`);
 
-  // WhisperX command with diarization
-  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model large-v3 --language en --diarize --min_speakers 1 --max_speakers 10 --verbose`;
+  // WhisperX command with diarization (use base model for speed)
+  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10 --verbose`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioPath}" --verbose ...`);
 
@@ -193,6 +193,13 @@ async function main() {
     process.exit(0);
   }
 
+  // Limit to first 3 episodes for testing
+  const MAX_EPISODES = 3;
+  const episodesToProcess = episodes.slice(0, MAX_EPISODES);
+  if (episodes.length > MAX_EPISODES) {
+    console.log(`⚠️  Limiting to ${MAX_EPISODES} episodes for faster processing (${episodes.length} total found)`);
+  }
+
   // Create transcripts directory
   await fs.mkdir(TRANSCRIPTS_DIR, { recursive: true });
   console.log(`📁 Transcripts directory: ${TRANSCRIPTS_DIR}`);
@@ -207,7 +214,7 @@ async function main() {
   let successCount = 0;
   let failureCount = 0;
 
-  for (const episode of episodes) {
+  for (const episode of episodesToProcess) {
     const result = await transcribeEpisode(episode, tempDir);
     results.push(result);
 
