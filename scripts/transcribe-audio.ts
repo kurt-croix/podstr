@@ -213,8 +213,33 @@ async function main() {
   const results: TranscriptionResult[] = [];
   let successCount = 0;
   let failureCount = 0;
+  let skippedCount = 0;
 
+  // Check for existing transcripts to avoid duplicate work
   for (const episode of episodesToProcess) {
+    const safeTitle = sanitizeFilename(episode.title);
+    const timestamp = episode.timestamp || Date.now();
+    const transcriptFilename = `${safeTitle}-${timestamp}.txt`;
+    const transcriptPath = path.join(TRANSCRIPTS_DIR, transcriptFilename);
+
+    // Check if transcript already exists
+    try {
+      await fs.access(transcriptPath);
+      console.log(`⏭️  Skipping existing transcript: ${transcriptFilename}`);
+      const transcriptUrl = `${BASE_URL}/transcripts/${transcriptFilename}`;
+      results.push({
+        dTag: episode.dTag,
+        transcriptPath,
+        transcriptUrl,
+        success: true,
+      });
+      successCount++;
+      skippedCount++;
+      continue;
+    } catch {
+      // File doesn't exist, proceed with transcription
+    }
+
     const result = await transcribeEpisode(episode, tempDir);
     results.push(result);
 
@@ -240,7 +265,7 @@ async function main() {
   // Log summary
   console.log('\n📊 Transcription Summary:');
   console.log(`  Total episodes: ${episodes.length}`);
-  console.log(`  Successful: ${successCount}`);
+  console.log(`  Successful: ${successCount} (${skippedCount} already transcribed)`);
   console.log(`  Failed: ${failureCount}`);
 
   if (failureCount > 0) {
