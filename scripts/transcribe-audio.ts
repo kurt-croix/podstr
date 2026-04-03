@@ -74,9 +74,9 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   console.log(`🎙️  Running WhisperX on: ${audioPath}`);
 
   // WhisperX command with diarization (use base model for speed)
-  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10 --verbose`;
+  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10`;
 
-  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioPath}" --verbose ...`);
+  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioPath}" ...`);
 
   await new Promise<void>((resolve, reject) => {
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
