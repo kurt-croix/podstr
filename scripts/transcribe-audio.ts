@@ -74,23 +74,12 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   console.log(`🎙️  Running WhisperX on: ${audioPath}`);
 
   // WhisperX command with diarization
-  const cmd = [
-    'huggingface-cli login --token ${hfToken} &&',
-    'whisperx',
-    `"${audioPath}"`,
-    `--output_dir "${path.dirname(outputPath)}"`,
-    `--output_format txt`,
-    `--model large-v3`,
-    `--language en`,
-    `--diarize`,
-    `--min_speakers 1`,
-    `--max_speakers 10`
-  ].join(' ');
+  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model large-v3 --language en --diarize --min_speakers 1 --max_speakers 10`;
 
-  console.log(`🔧 Command: ${cmd}`);
+  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioPath}" ...`);
 
   await new Promise<void>((resolve, reject) => {
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024, env: { ...process.env, HF_TOKEN: hfToken } }, (error, stdout, stderr) => {
+    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         console.error('❌ WhisperX error:', stderr);
         reject(new Error(`WhisperX failed: ${error.message}`));
