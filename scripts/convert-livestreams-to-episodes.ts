@@ -716,12 +716,11 @@ async function main() {
           }
           // Check if already converted
           if (isLivestreamConverted(livestream, existingEpisodes)) {
-            const dTag = livestream.tags.find(t => t[0] === 'd')?.[1];
             console.log(`⏭️  Skipping (already converted): ${dTag}`);
             skippedCount.value++;
             summaries.push({
               livestreamAddress: `${livestream.pubkey}:${dTag}`,
-              title: livestream.tags.find(([name]) => name === 'title')?.[1] || 'Untitled',
+              title,
               status: 'skipped',
               reason: 'Already converted',
             });

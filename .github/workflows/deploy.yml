@@ -78,7 +78,6 @@ jobs:
 
       - name: Convert livestreams to episodes
         run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
-        continue-on-error: true
         env:
           LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
@@ -86,6 +85,7 @@ jobs:
 
       - name: Transcribe audio with WhisperX
         run: npx -y tsx scripts/transcribe-audio.ts
+        timeout-minutes: 60
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
@@ -110,6 +110,7 @@ jobs:
           git add .transcript-mapping.json || true
           git diff --staged --quiet || git commit -m "chore: add episode transcripts"
           git push
+        timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: hashFiles('transcripts/*') != ''
