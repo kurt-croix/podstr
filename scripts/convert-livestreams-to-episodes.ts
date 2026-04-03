@@ -697,17 +697,17 @@ async function main() {
 
       for (const livestream of livestreams) {
         const eventId = livestream.id;
-        const dTag = livestream.tags.find(t => t[0] === 'd')?.[1] || 'unknown';
+        const streamDTag = livestream.tags.find(t => t[0] === 'd')?.[1] || 'unknown';
         const title = livestream.tags.find(([name]) => name === 'title')?.[1] || 'Untitled';
-        console.log(`\\n📌 Processing event: ${eventId} (d: ${dTag}, title: "${title}")`);
+        console.log(`\\n📌 Processing event: ${eventId} (d: ${streamDTag}, title: "${title}")`);
 
         try {
           // Check if livestream is in ignore list
           if (shouldIgnoreLivestream(livestream)) {
-            console.log(`⏭️  Skipping (ignored by configuration): ${dTag}`);
+            console.log(`⏭️  Skipping (ignored by configuration): ${streamDTag}`);
             skippedCount.value++;
             summaries.push({
-              livestreamAddress: `${livestream.pubkey}:${dTag}`,
+              livestreamAddress: `${livestream.pubkey}:${streamDTag}`,
               title,
               status: 'skipped',
               reason: 'Ignored by configuration',
@@ -716,10 +716,10 @@ async function main() {
           }
           // Check if already converted
           if (isLivestreamConverted(livestream, existingEpisodes)) {
-            console.log(`⏭️  Skipping (already converted): ${dTag}`);
+            console.log(`⏭️  Skipping (already converted): ${streamDTag}`);
             skippedCount.value++;
             summaries.push({
-              livestreamAddress: `${livestream.pubkey}:${dTag}`,
+              livestreamAddress: `${livestream.pubkey}:${streamDTag}`,
               title,
               status: 'skipped',
               reason: 'Already converted',
@@ -759,19 +759,19 @@ async function main() {
 
           // Update summaries
           convertedCount.value++;
-          const dTag = livestream.tags.find(t => t[0] === 'd')?.[1];
+          const episodeDTag = episode.tags.find(t => t[0] === 'd')?.[1];
           summaries.push({
-            livestreamAddress: `${livestream.pubkey}:${dTag}`,
+            livestreamAddress: `${livestream.pubkey}:${streamDTag}`,
             title: livestream.tags.find(([name]) => name === 'title')?.[1] || 'Untitled',
-            episodeId: episode.tags.find(t => t[0] === 'd')?.[1],
+            episodeId: episodeDTag,
             status: 'success',
           });
 
           // Update state
-          state.processedLivestreams[`${livestream.pubkey}:${dTag}`] = {
-            address: `${livestream.pubkey}:${dTag}`,
+          state.processedLivestreams[`${livestream.pubkey}:${streamDTag}`] = {
+            address: `${livestream.pubkey}:${streamDTag}`,
             timestamp: livestream.created_at,
-            episodeId: episode.tags.find(t => t[0] === 'd')?.[1],
+            episodeId: episodeDTag,
             status: 'success',
           };
           state.lastProcessedTimestamp = Math.floor(Date.now() / 1000);
