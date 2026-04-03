@@ -193,11 +193,11 @@ async function main() {
     process.exit(0);
   }
 
-  // Limit to first 3 episodes for testing
-  const MAX_EPISODES = 3;
+  // Limit to first episode for faster processing (diarization takes ~45 min per episode)
+  const MAX_EPISODES = 1;
   const episodesToProcess = episodes.slice(0, MAX_EPISODES);
   if (episodes.length > MAX_EPISODES) {
-    console.log(`⚠️  Limiting to ${MAX_EPISODES} episodes for faster processing (${episodes.length} total found)`);
+    console.log(`⚠️  Limiting to ${MAX_EPISODES} episode per run for faster processing (${episodes.length} total found)`);
   }
 
   // Create transcripts directory
