@@ -33,6 +33,15 @@ interface EpisodeWithTranscript {
 const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
 
 /**
+ * Create a timeout-based abort signal
+ */
+function createTimeoutSignal(timeoutMs: number): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), timeoutMs);
+  return controller.signal;
+}
+
+/**
  * Fetch episode from Nostr with optimized timeout
  */
 async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string): Promise<NostrEvent | null> {
@@ -41,7 +50,7 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
 
   try {
     console.log(`      Sending query for episode ${dTag}...`);
-    const signal = AbortSignal.timeout(5000); // 5 second timeout (faster)
+    const signal = createTimeoutSignal(5000); // 5 second timeout (more reliable)
 
     const events = await relay.query([{
       kinds: [30054],
