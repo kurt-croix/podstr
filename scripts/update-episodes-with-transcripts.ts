@@ -37,12 +37,13 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
   const relay = new NRelay1(relayUrl);
 
   try {
+    const signal = AbortSignal.timeout(10000); // 10 second timeout
     const events = await relay.query([{
       kinds: [30054],
       authors: [authorPubkey],
       '#d': [dTag],
       limit: 1,
-    }]);
+    }], { signal });
 
     relay.close();
 
@@ -53,6 +54,7 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
     return null;
   } catch (error) {
     console.error(`❌ Failed to fetch episode ${dTag} from ${relayUrl}:`, error);
+    relay.close();
     return null;
   }
 }
@@ -127,7 +129,8 @@ async function publishEvent(event: NostrEvent, relayUrl: string): Promise<boolea
   const relay = new NRelay1(relayUrl);
 
   try {
-    const ok = await relay.event(event);
+    const signal = AbortSignal.timeout(10000); // 10 second timeout
+    const ok = await relay.event(event, { signal });
     relay.close();
     return ok;
   } catch (error) {
