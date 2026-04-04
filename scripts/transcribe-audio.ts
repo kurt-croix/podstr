@@ -66,7 +66,7 @@ async function extractAudioSegment(inputPath: string, outputPath: string, durati
     const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -acodec libmp3lame -ab 128k "${outputPath}" -y 2>/dev/null`;
     console.log(`🎬 Extracting first ${durationSeconds} seconds for testing...`);
 
-    exec(cmd, (error, stdout, stderr) => {
+    exec(cmd, (error, _stdout, _stderr) => {
       if (error) {
         console.error('❌ FFmpeg error:', error.message);
         reject(new Error(`FFmpeg failed: ${error.message}`));
@@ -154,7 +154,17 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 /**
  * Generate WebVTT format from OpenAI Whisper response
  */
-function generateWebVTT(transcription: any, testMode: boolean): string {
+interface WhisperSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+interface WhisperResponse {
+  segments?: WhisperSegment[];
+}
+
+function generateWebVTT(transcription: WhisperResponse, testMode: boolean): string {
   let vtt = 'WEBVTT\n\n';
 
   if (testMode) {
@@ -163,7 +173,7 @@ function generateWebVTT(transcription: any, testMode: boolean): string {
 
   // Convert segments to WebVTT format
   if (transcription.segments && Array.isArray(transcription.segments)) {
-    transcription.segments.forEach((segment: any, index: number) => {
+    transcription.segments.forEach((segment: WhisperSegment, index: number) => {
       const startTime = formatTimestamp(segment.start);
       const endTime = formatTimestamp(segment.end);
       const text = segment.text.trim();
