@@ -62,6 +62,26 @@ async function downloadFile(url: string, filepath: string): Promise<void> {
 }
 
 /**
+ * Extract first N seconds of audio file for testing
+ */
+async function extractAudioSegment(inputPath: string, outputPath: string, durationSeconds: number = 120): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -c copy "${outputPath}" -y`;
+    console.log(`🎬 Extracting first ${durationSeconds} seconds for testing...`);
+
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error('❌ FFmpeg error:', stderr);
+        reject(new Error(`FFmpeg failed: ${error.message}`));
+        return;
+      }
+      console.log(`✅ Audio segment extracted to: ${outputPath}`);
+      resolve();
+    });
+  });
+}
+
+/**
  * Run WhisperX on audio file with diarization
  */
 async function runWhisperX(audioPath: string, outputPath: string): Promise<void> {
@@ -69,19 +89,30 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   const testMode = process.env.TEST_MODE === 'true';
   const timeoutMinutes = testMode ? 10 : 120; // 10 minutes in test mode, 120 minutes normally
 
+  // Extract short segment for testing
+  let audioToTranscribe = audioPath;
+  if (testMode) {
+    const tempDir = path.dirname(audioPath);
+    const basename = path.basename(audioPath, path.extname(audioPath));
+    const segmentPath = path.join(tempDir, `${basename}_segment.mp3`);
+
+    await extractAudioSegment(audioPath, segmentPath, 120); // Extract first 2 minutes
+    audioToTranscribe = segmentPath;
+  }
+
   if (!hfToken) {
     throw new Error('HF_TOKEN environment variable is required for WhisperX');
   }
 
-  console.log(`🎙️  Running WhisperX on: ${audioPath}`);
+  console.log(`🎙️  Running WhisperX on: ${audioToTranscribe}`);
   if (testMode) {
-    console.log(`⚡ TEST MODE: Transcription will timeout after ${timeoutMinutes} minutes`);
+    console.log(`⚡ TEST MODE: Transcribing 2-minute segment with 10-minute timeout`);
   }
 
   // WhisperX command with diarization (use base model for speed)
-  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10`;
+  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10`;
 
-  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioPath}" ...`);
+  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ...`);
 
   // Create timeout promise
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -93,6 +124,13 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   // Create execution promise
   const executionPromise = new Promise<void>((resolve, reject) => {
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+      // Clean up segment file if it exists
+      if (testMode && audioToTranscribe !== audioPath) {
+        fs.unlink(audioToTranscribe).catch(() => {
+          // Ignore cleanup errors
+        });
+      }
+
       if (error) {
         console.error('❌ WhisperX error:', stderr);
         reject(new Error(`WhisperX failed: ${error.message}`));
@@ -103,8 +141,15 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 
       // WhisperX creates a .txt file in the output directory
       // The file will have the same name as the input audio file
-      const inputBasename = path.basename(audioPath, path.extname(audioPath));
+      const inputBasename = path.basename(audioToTranscribe, path.extname(audioToTranscribe));
       const txtFile = path.join(path.dirname(outputPath), `${inputBasename}.txt`);
+
+      // Add test mode note to transcript
+      if (testMode) {
+        let transcriptContent = await fs.readFile(txtFile, 'utf-8');
+        transcriptContent = `[TEST MODE TRANSCRIPT - First 2 minutes only]\n\n${transcriptContent}`;
+        await fs.writeFile(txtFile, transcriptContent);
+      }
 
       // Move/rename to the desired output path
       fs.rename(txtFile, outputPath)
