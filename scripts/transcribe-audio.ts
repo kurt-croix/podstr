@@ -330,6 +330,7 @@ async function main() {
         transcriptPath,
         transcriptUrl,
         success: true,
+        event: episode.event, // Include original event to avoid re-fetching
       });
       successCount++;
       skippedCount++;
