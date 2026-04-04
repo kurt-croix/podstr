@@ -131,31 +131,54 @@ async function updateEpisodeWithTranscript(
 }
 
 /**
- * Publish event to Nostr
+ * Publish event to Nostr using WebSocket (matching conversion script approach)
  */
 async function publishEvent(event: NostrEvent, relayUrl: string): Promise<boolean> {
-  console.log(`      Connecting to relay: ${relayUrl}`);
-  const relay = new NRelay1(relayUrl);
+  const TIMEOUT_MS = 30_000;
+  console.log(`      Publishing event to ${relayUrl}...`);
 
-  try {
-    console.log(`      Publishing event ${event.id.substring(0, 8)}...`);
-    const signal = AbortSignal.timeout(10000); // 10 second timeout
-    const ok = await relay.event(event, { signal });
-    console.log(`      Closing relay connection`);
-    relay.close();
+  return new Promise<boolean>((resolve) => {
+    const ws = new WebSocket(relayUrl);
+    let timeoutId: NodeJS.Timeout;
 
-    if (ok) {
-      console.log(`      Event published successfully`);
-    } else {
-      console.log(`      Event publication returned false`);
-    }
+    // Set timeout
+    timeoutId = setTimeout(() => {
+      console.error(`      ❌ Publish timeout after ${TIMEOUT_MS}ms`);
+      ws.close();
+      resolve(false);
+    }, TIMEOUT_MS);
 
-    return ok;
-  } catch (error) {
-    console.error(`      ❌ Error publishing event:`, error);
-    relay.close();
-    return false;
-  }
+    ws.on('open', () => {
+      console.log(`      Connected, sending EVENT message...`);
+      const eventMsg = JSON.stringify(['EVENT', event]);
+      ws.send(eventMsg);
+    });
+
+    ws.on('message', (data: Buffer) => {
+      const message = JSON.parse(data.toString());
+
+      if (message[0] === 'OK') {
+        const success = message[2];
+        clearTimeout(timeoutId);
+        ws.close();
+
+        if (success) {
+          console.log(`      ✅ Event published successfully!`);
+          resolve(true);
+        } else {
+          console.error(`      ❌ Event rejected: ${message[3]}`);
+          resolve(false);
+        }
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error(`      ❌ WebSocket error:`, error);
+      clearTimeout(timeoutId);
+      ws.close();
+      resolve(false);
+    });
+  });
 }
 
 /**
