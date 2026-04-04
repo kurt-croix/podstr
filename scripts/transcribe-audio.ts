@@ -123,7 +123,7 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 
   // Create execution promise
   const executionPromise = new Promise<void>((resolve, reject) => {
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (error, stdout, stderr) => {
       // Clean up segment file if it exists
       if (testMode && audioToTranscribe !== audioPath) {
         fs.unlink(audioToTranscribe).catch(() => {
