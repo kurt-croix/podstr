@@ -107,8 +107,8 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   }
 
   // WhisperX command with diarization (use base model for speed)
-  // Generate WebVTT format for PodcastIndex compliance
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model base --language en --diarize --min_speakers 1 --max_speakers 10 --highlight_words True --align_model WAV2VEC2_ASR_LARGE_LV60K_960H >/dev/null 2>&1`;
+  // Generate WebVTT format for PodcastIndex compliance (simplified for performance)
+  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model tiny --language en --diarize --min_speakers 1 --max_speakers 10 >/dev/null 2>&1`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
 
