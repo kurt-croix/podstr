@@ -66,7 +66,8 @@ async function downloadFile(url: string, filepath: string): Promise<void> {
  */
 async function extractAudioSegment(inputPath: string, outputPath: string, durationSeconds: number = 120): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -c copy "${outputPath}" -y 2>/dev/null`;
+    // Use audio codec conversion instead of copy to handle video files
+    const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -acodec libmp3lame -ab 128k "${outputPath}" -y 2>/dev/null`;
     console.log(`🎬 Extracting first ${durationSeconds} seconds for testing...`);
 
     exec(cmd, (error, stdout, stderr) => {
