@@ -33,7 +33,7 @@ interface EpisodeWithTranscript {
 const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
 
 /**
- * Fetch episode from Nostr
+ * Fetch episode from Nostr with optimized timeout
  */
 async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string): Promise<NostrEvent | null> {
   console.log(`      Connecting to relay: ${relayUrl}`);
@@ -41,7 +41,8 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
 
   try {
     console.log(`      Sending query for episode ${dTag}...`);
-    const signal = AbortSignal.timeout(10000); // 10 second timeout
+    const signal = AbortSignal.timeout(5000); // 5 second timeout (faster)
+
     const events = await relay.query([{
       kinds: [30054],
       authors: [authorPubkey],
@@ -61,7 +62,11 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
     return null;
   } catch (error) {
     console.error(`      ❌ Error fetching episode ${dTag}:`, error);
-    relay.close();
+    try {
+      relay.close();
+    } catch {
+      // Ignore close errors
+    }
     return null;
   }
 }
@@ -236,6 +241,11 @@ async function main() {
   }
 
   console.log(`👤 Author pubkey: ${authorPubkey.substring(0, 8)}...`);
+
+  // Use faster relay for better performance
+  if (config.relayUrl === 'wss://nos.lol') {
+    config.relayUrl = 'wss://relay.primal.net'; // Switch to faster relay
+  }
 
   // Update episodes
   let successCount = 0;
