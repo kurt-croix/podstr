@@ -1,8 +1,30 @@
 import path from "node:path";
+import { existsSync, readdirSync } from 'fs';
 
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vitest/config";
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+// Check if transcripts directory exists and has files
+const transcriptsDir = 'transcripts';
+const hasTranscripts = existsSync(transcriptsDir) && readdirSync(transcriptsDir).length > 0;
+
+// Build plugins array conditionally
+const plugins = [react()];
+
+// Only add viteStaticCopy if there are transcripts to copy
+if (hasTranscripts) {
+  plugins.push(
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'transcripts',
+          dest: '.'
+        }
+      ]
+    })
+  );
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
@@ -11,18 +33,7 @@ export default defineConfig(() => ({
     host: "::",
     port: 8080,
   },
-  plugins: [
-    react(),
-    viteStaticCopy({
-      targets: [
-        {
-          src: 'transcripts',
-          dest: '.',
-          errorOnNotExist: false // Don't fail if transcripts directory doesn't exist or is empty
-        }
-      ]
-    })
-  ],
+  plugins,
   test: {
     globals: true,
     environment: 'jsdom',
