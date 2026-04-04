@@ -1,9 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  # Runs on pushes targeting default branch
-  push:
-    branches: ["main", "bugfixes"]
+  # TEMPORARILY DISABLED: Runs on pushes targeting default branch
+  # push:
+  #   branches: ["main", "bugfixes"]
 
   # Schedule automatic deployment Wednesday and Thursday at 1pm Central
   schedule:
