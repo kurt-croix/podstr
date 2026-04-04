@@ -142,6 +142,37 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
       const transcriptUrl = episode.transcriptUrl && useOP3 ? addOP3Prefix(episode.transcriptUrl) : episode.transcriptUrl;
       const chaptersUrl = episode.chaptersUrl && useOP3 ? addOP3Prefix(episode.chaptersUrl) : episode.chaptersUrl;
 
+      // Build podcast:transcript tag with PodcastIndex specification attributes
+      const transcriptTag = transcriptUrl ? (() => {
+        // Determine transcript type from URL or default to text/vtt (WebVTT format)
+        let transcriptType = 'text/vtt'; // Default to WebVTT for PodcastIndex compliance
+        if (transcriptUrl.endsWith('.html') || transcriptUrl.endsWith('.htm')) {
+          transcriptType = 'text/html';
+        } else if (transcriptUrl.endsWith('.json')) {
+          transcriptType = 'application/json';
+        } else if (transcriptUrl.endsWith('.txt')) {
+          transcriptType = 'text/plain'; // Legacy .txt files
+        }
+
+        // Build attributes array
+        const attributes = [
+          `url="${escapeXml(transcriptUrl)}"`,
+          `type="${transcriptType}"`
+        ];
+
+        // Add optional language attribute from podcast config
+        if (podcastConfig.podcast.language) {
+          attributes.push(`language="${escapeXml(podcastConfig.podcast.language)}"`);
+        }
+
+        // Add rel="captions" if this is a VTT file (has time codes)
+        if (transcriptType === 'text/vtt') {
+          attributes.push(`rel="captions"`);
+        }
+
+        return `<podcast:transcript ${attributes.join(' ')} />`;
+      })() : '';
+
       return `
     <item>
       <title>${escapeXml(episode.title)}</title>
@@ -154,7 +185,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
       <itunes:duration>${episode.duration ? formatDurationForRSS(episode.duration) : '00:00'}</itunes:duration>
       <itunes:explicit>${episode.explicit ? 'yes' : 'no'}</itunes:explicit>
       ${episode.imageUrl ? `<itunes:image href="${escapeXml(episode.imageUrl)}" />` : ''}
-      ${transcriptUrl ? `<podcast:transcript url="${escapeXml(transcriptUrl)}" type="text/plain" />` : ''}
+      ${transcriptTag}
       ${chaptersUrl ? `<podcast:chapters url="${escapeXml(chaptersUrl)}" type="application/json+chapters" />` : ''}
       ${episode.content ? `<content:encoded><![CDATA[${episode.content}]]></content:encoded>` : ''}
       ${episode.value && episode.value.enabled && episode.value.recipients && episode.value.recipients.length > 0 ?

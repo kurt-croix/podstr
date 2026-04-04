@@ -107,7 +107,8 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   }
 
   // WhisperX command with diarization (use base model for speed)
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10 >/dev/null 2>&1`;
+  // Generate WebVTT format for PodcastIndex compliance
+  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model base --language en --diarize --min_speakers 1 --max_speakers 10 --highlight_words True --align_model WAV2VEC2_ASR_LARGE_LV60K_960H >/dev/null 2>&1`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
 
@@ -138,20 +139,21 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
         console.log('✅ WhisperX completed successfully');
       }
 
-      // WhisperX creates a .txt file in the output directory
+      // WhisperX creates a .vtt file in the output directory
       // The file will have the same name as the input audio file
       const inputBasename = path.basename(audioToTranscribe, path.extname(audioToTranscribe));
-      const txtFile = path.join(path.dirname(outputPath), `${inputBasename}.txt`);
+      const vttFile = path.join(path.dirname(outputPath), `${inputBasename}.vtt`);
 
-      // Add test mode note to transcript
+      // Add test mode note to WebVTT transcript
       if (testMode) {
-        let transcriptContent = await fs.readFile(txtFile, 'utf-8');
-        transcriptContent = `[TEST MODE TRANSCRIPT - First 2 minutes only]\n\n${transcriptContent}`;
-        await fs.writeFile(txtFile, transcriptContent);
+        let vttContent = await fs.readFile(vttFile, 'utf-8');
+        // Insert test mode note after the WEBVTT header
+        vttContent = vttContent.replace('WEBVTT', 'WEBVTT\n\nNOTE TEST MODE TRANSCRIPT - First 2 minutes only');
+        await fs.writeFile(vttFile, vttContent);
       }
 
       // Move/rename to the desired output path
-      fs.rename(txtFile, outputPath)
+      fs.rename(vttFile, outputPath)
         .then(() => {
           console.log(`✅ Transcript saved to: ${outputPath}`);
           resolve();
@@ -180,7 +182,7 @@ async function transcribeEpisode(episode: EpisodeMetadata, tempDir: string): Pro
   const safeTitle = sanitizeFilename(title);
   const timestamp = episode.timestamp || Date.now();
   const audioFilename = `${safeTitle}-${timestamp}.mp3`;
-  const transcriptFilename = `${safeTitle}-${timestamp}.txt`;
+  const transcriptFilename = `${safeTitle}-${timestamp}.vtt`; // Use .vtt for WebVTT format
 
   const audioPath = path.join(tempDir, audioFilename);
   const transcriptPath = path.join(TRANSCRIPTS_DIR, transcriptFilename);
@@ -287,7 +289,7 @@ async function main() {
 
     const safeTitle = sanitizeFilename(episode.title);
     const timestamp = episode.timestamp || Date.now();
-    const transcriptFilename = `${safeTitle}-${timestamp}.txt`;
+    const transcriptFilename = `${safeTitle}-${timestamp}.vtt`; // Use .vtt for WebVTT format
     const transcriptPath = path.join(TRANSCRIPTS_DIR, transcriptFilename);
 
     // Check if transcript already exists
