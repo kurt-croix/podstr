@@ -17,7 +17,8 @@ export default defineConfig(() => ({
       targets: [
         {
           src: 'transcripts',
-          dest: '.'
+          dest: '.',
+          errorOnNotExist: false // Don't fail if transcripts directory doesn't exist or is empty
         }
       ]
     })
