@@ -34,9 +34,11 @@ const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
  * Fetch episode from Nostr
  */
 async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string): Promise<NostrEvent | null> {
+  console.log(`      Connecting to relay: ${relayUrl}`);
   const relay = new NRelay1(relayUrl);
 
   try {
+    console.log(`      Sending query for episode ${dTag}...`);
     const signal = AbortSignal.timeout(10000); // 10 second timeout
     const events = await relay.query([{
       kinds: [30054],
@@ -45,15 +47,18 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
       limit: 1,
     }], { signal });
 
+    console.log(`      Query completed, closing relay connection`);
     relay.close();
 
     if (events.length > 0) {
+      console.log(`      Found ${events.length} matching event(s)`);
       return events[0];
     }
 
+    console.log(`      No events found matching query`);
     return null;
   } catch (error) {
-    console.error(`❌ Failed to fetch episode ${dTag} from ${relayUrl}:`, error);
+    console.error(`      ❌ Error fetching episode ${dTag}:`, error);
     relay.close();
     return null;
   }
@@ -126,15 +131,25 @@ async function updateEpisodeWithTranscript(
  * Publish event to Nostr
  */
 async function publishEvent(event: NostrEvent, relayUrl: string): Promise<boolean> {
+  console.log(`      Connecting to relay: ${relayUrl}`);
   const relay = new NRelay1(relayUrl);
 
   try {
+    console.log(`      Publishing event ${event.id.substring(0, 8)}...`);
     const signal = AbortSignal.timeout(10000); // 10 second timeout
     const ok = await relay.event(event, { signal });
+    console.log(`      Closing relay connection`);
     relay.close();
+
+    if (ok) {
+      console.log(`      Event published successfully`);
+    } else {
+      console.log(`      Event publication returned false`);
+    }
+
     return ok;
   } catch (error) {
-    console.error(`❌ Failed to publish event to ${relayUrl}:`, error);
+    console.error(`      ❌ Error publishing event:`, error);
     relay.close();
     return false;
   }
@@ -204,11 +219,16 @@ async function main() {
   let successCount = 0;
   let failureCount = 0;
 
+  console.log(`\n🔄 Starting episode update process...`);
+  console.log(`   Relay: ${config.relayUrl}`);
+  console.log(`   Episodes to update: ${successfulTranscriptions.length}`);
+
   for (const result of successfulTranscriptions) {
     console.log(`\n🔄 Processing episode: ${result.dTag}`);
     console.log(`   Transcript URL: ${result.transcriptUrl}`);
 
     // Fetch episode
+    console.log(`   Step 1: Fetching episode from relay...`);
     const episode = await fetchEpisode(config.relayUrl, authorPubkey, result.dTag);
     if (!episode) {
       console.error(`❌ Failed to fetch episode ${result.dTag}`);
@@ -216,10 +236,11 @@ async function main() {
       continue;
     }
 
-    console.log(`✅ Fetched episode: ${episode.id.substring(0, 8)}...`);
+    console.log(`   ✅ Fetched episode: ${episode.id.substring(0, 8)}...`);
 
     // Update episode with transcript URL
     try {
+      console.log(`   Step 2: Updating event with transcript URL...`);
       const updatedEvent = await updateEpisodeWithTranscript(
         episode,
         result.transcriptUrl,
@@ -227,21 +248,24 @@ async function main() {
         config.nbunksec
       );
 
-      console.log(`✅ Updated event: ${updatedEvent.id.substring(0, 8)}...`);
+      console.log(`   ✅ Updated event: ${updatedEvent.id.substring(0, 8)}...`);
 
       // Publish updated event
+      console.log(`   Step 3: Publishing updated event to relay...`);
       const published = await publishEvent(updatedEvent, config.relayUrl);
       if (published) {
-        console.log(`✅ Published updated event`);
+        console.log(`   ✅ Published updated event successfully`);
         successCount++;
       } else {
-        console.error(`❌ Failed to publish updated event`);
+        console.error(`   ❌ Failed to publish updated event`);
         failureCount++;
       }
     } catch (error) {
-      console.error(`❌ Failed to update episode:`, error);
+      console.error(`   ❌ Failed to update episode:`, error);
       failureCount++;
     }
+
+    console.log(`   Episode processing complete`);
   }
 
   // Log summary
