@@ -14,6 +14,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { NSecSigner } from '@nostrify/nostrify';
 import { NSyteBunkerSigner } from './lib/nsyte-bunker-minimal';
 import { promises as fs } from 'fs';
+import { WebSocket } from 'ws';
 
 interface TranscriptionResult {
   dTag: string;
