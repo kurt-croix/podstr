@@ -214,9 +214,16 @@ async function main() {
   let successCount = 0;
   let failureCount = 0;
   let skippedCount = 0;
+  let transcribedCount = 0;
 
   // Check for existing transcripts to avoid duplicate work
   for (const episode of episodesToProcess) {
+    // Stop after transcribing MAX_EPISODES episodes
+    if (transcribedCount >= MAX_EPISODES) {
+      console.log(`\n⏹️  Reached limit of ${MAX_EPISODES} episode(s) transcribed`);
+      break;
+    }
+
     const safeTitle = sanitizeFilename(episode.title);
     const timestamp = episode.timestamp || Date.now();
     const transcriptFilename = `${safeTitle}-${timestamp}.txt`;
@@ -245,6 +252,7 @@ async function main() {
 
     if (result.success) {
       successCount++;
+      transcribedCount++;
     } else {
       failureCount++;
     }
