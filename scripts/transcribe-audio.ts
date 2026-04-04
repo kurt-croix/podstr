@@ -79,12 +79,11 @@ async function extractAudioSegment(inputPath: string, outputPath: string, durati
 }
 
 /**
- * Run WhisperX on audio file with diarization
+ * Run OpenAI Whisper API transcription
  */
 async function runWhisperX(audioPath: string, outputPath: string): Promise<void> {
-  const hfToken = process.env.HF_TOKEN;
+  const apiKey = process.env.OPENAI_API_KEY;
   const testMode = process.env.TEST_MODE === 'true';
-  const timeoutMinutes = testMode ? 10 : 120; // 10 minutes in test mode, 120 minutes normally
 
   // Extract short segment for testing
   let audioToTranscribe = audioPath;
@@ -97,77 +96,95 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
     audioToTranscribe = segmentPath;
   }
 
-  if (!hfToken) {
-    throw new Error('HF_TOKEN environment variable is required for WhisperX');
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is required for transcription');
   }
 
-  console.log(`🎙️  Running WhisperX on: ${audioToTranscribe}`);
+  console.log(`🎙️  Running OpenAI Whisper on: ${audioToTranscribe}`);
   if (testMode) {
-    console.log(`⚡ TEST MODE: Transcribing 2-minute segment with 10-minute timeout`);
+    console.log(`⚡ TEST MODE: Transcribing 2-minute segment`);
   }
 
-  // WhisperX command with diarization (use tiny model for speed)
-  // Generate WebVTT format for PodcastIndex compliance
-  // Simplified command to ensure reliable performance
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model tiny --language en >/dev/null 2>&1`;
+  // Read audio file
+  const audioFile = await fs.readFile(audioToTranscribe);
 
-  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
+  // Create form data
+  const formData = new FormData();
+  formData.append('file', new Blob([audioFile]), path.basename(audioToTranscribe));
+  formData.append('model', 'whisper-1');
+  formData.append('response_format', 'verbose_json');
+  formData.append('language', 'en');
 
-  // Create timeout promise
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      reject(new Error(`WhisperX transcription timed out after ${timeoutMinutes} minutes`));
-    }, timeoutMinutes * 60 * 1000);
+  console.log(`🔧 Calling OpenAI Whisper API...`);
+
+  // Call OpenAI API
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: formData,
   });
 
-  // Create execution promise
-  const executionPromise = new Promise<void>((resolve, reject) => {
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (error, stdout, stderr) => {
-      // Clean up segment file if it exists
-      if (testMode && audioToTranscribe !== audioPath) {
-        fs.unlink(audioToTranscribe).catch(() => {
-          // Ignore cleanup errors
-        });
-      }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ OpenAI API error: ${response.status} ${response.statusText}`);
+    console.error(`Error details: ${errorText}`);
+    throw new Error(`OpenAI API failed: ${response.status} ${response.statusText}`);
+  }
 
-      if (error) {
-        console.error('❌ WhisperX error:', error.message);
-        reject(new Error(`WhisperX failed: ${error.message}`));
-        return;
-      }
+  const transcription = await response.json();
+  console.log(`✅ Transcription completed`);
 
-      if (stdout && stdout.trim()) {
-        console.log('✅ WhisperX completed successfully');
-      }
+  // Generate WebVTT format
+  const webVTT = generateWebVTT(transcription, testMode);
 
-      // WhisperX creates a .vtt file in the output directory
-      // The file will have the same name as the input audio file
-      const inputBasename = path.basename(audioToTranscribe, path.extname(audioToTranscribe));
-      const vttFile = path.join(path.dirname(outputPath), `${inputBasename}.vtt`);
+  // Write WebVTT file
+  await fs.writeFile(outputPath, webVTT, 'utf-8');
+  console.log(`✅ WebVTT transcript saved to: ${outputPath}`);
 
-      // Add test mode note to WebVTT transcript
-      if (testMode) {
-        let vttContent = await fs.readFile(vttFile, 'utf-8');
-        // Insert test mode note after the WEBVTT header
-        vttContent = vttContent.replace('WEBVTT', 'WEBVTT\n\nNOTE TEST MODE TRANSCRIPT - First 2 minutes only');
-        await fs.writeFile(vttFile, vttContent);
-      }
-
-      // Move/rename to the desired output path
-      fs.rename(vttFile, outputPath)
-        .then(() => {
-          console.log(`✅ Transcript saved to: ${outputPath}`);
-          resolve();
-        })
-        .catch(err => {
-          console.error('❌ Failed to move transcript:', err);
-          reject(err);
-        });
+  // Clean up segment file if it exists
+  if (testMode && audioToTranscribe !== audioPath) {
+    fs.unlink(audioToTranscribe).catch(() => {
+      // Ignore cleanup errors
     });
-  });
+  }
+}
 
-  // Race between execution and timeout
-  await Promise.race([executionPromise, timeoutPromise]);
+/**
+ * Generate WebVTT format from OpenAI Whisper response
+ */
+function generateWebVTT(transcription: any, testMode: boolean): string {
+  let vtt = 'WEBVTT\n\n';
+
+  if (testMode) {
+    vtt += 'NOTE TEST MODE TRANSCRIPT - First 2 minutes only\n\n';
+  }
+
+  // Convert segments to WebVTT format
+  if (transcription.segments && Array.isArray(transcription.segments)) {
+    transcription.segments.forEach((segment: any, index: number) => {
+      const startTime = formatTimestamp(segment.start);
+      const endTime = formatTimestamp(segment.end);
+      const text = segment.text.trim();
+
+      vtt += `${index + 1}\n${startTime} --> ${endTime}\n${text}\n\n`;
+    });
+  }
+
+  return vtt;
+}
+
+/**
+ * Format timestamp for WebVTT (HH:MM:SS.mmm)
+ */
+function formatTimestamp(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  const millis = Math.floor((seconds % 1) * 1000);
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
 }
 
 /**
@@ -231,12 +248,12 @@ async function transcribeEpisode(episode: EpisodeMetadata, tempDir: string): Pro
  * Main transcription function
  */
 async function main() {
-  console.log('🎙️  Starting audio transcription with WhisperX...');
+  console.log('🎙️  Starting audio transcription with OpenAI Whisper...');
 
-  // Check if HF_TOKEN is set
-  if (!process.env.HF_TOKEN) {
-    console.error('❌ HF_TOKEN environment variable is required');
-    console.error('   Please set HF_TOKEN in your GitHub Actions secrets');
+  // Check if OPENAI_API_KEY is set
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('❌ OPENAI_API_KEY environment variable is required');
+    console.error('   Please set OPENAI_API_KEY in your GitHub Actions secrets');
     process.exit(1);
   }
 
