@@ -72,4 +72,5 @@ export interface EpisodeMetadata {
   title: string;
   audioUrl: string;
   timestamp: number;
+  event?: NostrEvent; // Original episode event to avoid re-fetching
 }

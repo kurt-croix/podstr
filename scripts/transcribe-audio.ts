@@ -12,13 +12,8 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-
-interface EpisodeMetadata {
-  dTag: string;
-  title: string;
-  audioUrl: string;
-  timestamp?: number;
-}
+import { EpisodeMetadata } from './lib/conversion-types';
+import type { NostrEvent } from '@nostrify/nostrify';
 
 interface TranscriptionResult {
   dTag: string;
@@ -26,6 +21,7 @@ interface TranscriptionResult {
   transcriptUrl: string;
   success: boolean;
   error?: string;
+  event?: NostrEvent; // Original episode event to avoid re-fetching
 }
 
 const TRANSCRIPTS_DIR = path.resolve('transcripts');
@@ -205,6 +201,7 @@ async function transcribeEpisode(episode: EpisodeMetadata, tempDir: string): Pro
       transcriptPath,
       transcriptUrl,
       success: true,
+      event: episode.event, // Include original event to avoid re-fetching
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

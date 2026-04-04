@@ -21,6 +21,7 @@ interface TranscriptionResult {
   transcriptUrl: string;
   success: boolean;
   error?: string;
+  event?: NostrEvent; // Original episode event to avoid re-fetching
 }
 
 interface EpisodeWithTranscript {
@@ -227,16 +228,23 @@ async function main() {
     console.log(`\n🔄 Processing episode: ${result.dTag}`);
     console.log(`   Transcript URL: ${result.transcriptUrl}`);
 
-    // Fetch episode
-    console.log(`   Step 1: Fetching episode from relay...`);
-    const episode = await fetchEpisode(config.relayUrl, authorPubkey, result.dTag);
+    // Use event from transcription result if available
+    let episode = result.event;
+
+    // Only fetch if we don't have the event
     if (!episode) {
-      console.error(`❌ Failed to fetch episode ${result.dTag}`);
-      failureCount++;
-      continue;
+      console.log(`   Step 1: Fetching episode from relay...`);
+      episode = await fetchEpisode(config.relayUrl, authorPubkey, result.dTag);
+      if (!episode) {
+        console.error(`❌ Failed to fetch episode ${result.dTag}`);
+        failureCount++;
+        continue;
+      }
+    } else {
+      console.log(`   Step 1: Using original episode event (no fetch needed)`);
     }
 
-    console.log(`   ✅ Fetched episode: ${episode.id.substring(0, 8)}...`);
+    console.log(`   ✅ Found episode: ${episode.id.substring(0, 8)}...`);
 
     // Update episode with transcript URL
     try {

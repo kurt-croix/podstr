@@ -113,6 +113,7 @@ async function findEpisodesNeedingTranscription(authorPubkey: string): Promise<E
             title,
             audioUrl,
             timestamp: event.created_at,
+            event, // Include original event to avoid re-fetching
           });
         }
       }
