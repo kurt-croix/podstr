@@ -99,7 +99,9 @@ async function updateEpisodeWithTranscript(
       }
     }
 
-    signer = new NSecSigner(hexPrivateKey);
+    // Convert hex string to Uint8Array for NSecSigner
+    const privateKeyBytes = new Uint8Array(Buffer.from(hexPrivateKey, 'hex'));
+    signer = new NSecSigner(privateKeyBytes);
   }
 
   // Check if transcript tag already exists
