@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      test_mode:
+        description: 'Enable test mode (10-minute transcription timeout)'
+        required: false
+        default: false
+        type: boolean
 
 # Sets permissions of GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -89,6 +94,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          TEST_MODE: ${{ github.event.inputs.test_mode == 'true' }}
         if: hashFiles('.episodes-to-transcribe.json') != ''
 
       - name: Update episodes with transcript URLs

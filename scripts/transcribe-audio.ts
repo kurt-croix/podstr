@@ -66,19 +66,32 @@ async function downloadFile(url: string, filepath: string): Promise<void> {
  */
 async function runWhisperX(audioPath: string, outputPath: string): Promise<void> {
   const hfToken = process.env.HF_TOKEN;
+  const testMode = process.env.TEST_MODE === 'true';
+  const timeoutMinutes = testMode ? 10 : 120; // 10 minutes in test mode, 120 minutes normally
 
   if (!hfToken) {
     throw new Error('HF_TOKEN environment variable is required for WhisperX');
   }
 
   console.log(`🎙️  Running WhisperX on: ${audioPath}`);
+  if (testMode) {
+    console.log(`⚡ TEST MODE: Transcription will timeout after ${timeoutMinutes} minutes`);
+  }
 
   // WhisperX command with diarization (use base model for speed)
   const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioPath}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioPath}" ...`);
 
-  await new Promise<void>((resolve, reject) => {
+  // Create timeout promise
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`WhisperX transcription timed out after ${timeoutMinutes} minutes`));
+    }, timeoutMinutes * 60 * 1000);
+  });
+
+  // Create execution promise
+  const executionPromise = new Promise<void>((resolve, reject) => {
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         console.error('❌ WhisperX error:', stderr);
@@ -105,6 +118,9 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
         });
     });
   });
+
+  // Race between execution and timeout
+  await Promise.race([executionPromise, timeoutPromise]);
 }
 
 /**
