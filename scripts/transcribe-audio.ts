@@ -66,12 +66,12 @@ async function downloadFile(url: string, filepath: string): Promise<void> {
  */
 async function extractAudioSegment(inputPath: string, outputPath: string, durationSeconds: number = 120): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -c copy "${outputPath}" -y`;
+    const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -c copy "${outputPath}" -y 2>/dev/null`;
     console.log(`🎬 Extracting first ${durationSeconds} seconds for testing...`);
 
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
-        console.error('❌ FFmpeg error:', stderr);
+        console.error('❌ FFmpeg error:', error.message);
         reject(new Error(`FFmpeg failed: ${error.message}`));
         return;
       }
@@ -110,9 +110,9 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   }
 
   // WhisperX command with diarization (use base model for speed)
-  const cmd = `huggingface-cli login --token ${hfToken} && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10`;
+  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format txt --model base --language en --diarize --min_speakers 1 --max_speakers 10 >/dev/null 2>&1`;
 
-  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ...`);
+  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
 
   // Create timeout promise
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -132,12 +132,14 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
       }
 
       if (error) {
-        console.error('❌ WhisperX error:', stderr);
+        console.error('❌ WhisperX error:', error.message);
         reject(new Error(`WhisperX failed: ${error.message}`));
         return;
       }
 
-      console.log('✅ WhisperX output:', stdout);
+      if (stdout && stdout.trim()) {
+        console.log('✅ WhisperX completed successfully');
+      }
 
       // WhisperX creates a .txt file in the output directory
       // The file will have the same name as the input audio file
