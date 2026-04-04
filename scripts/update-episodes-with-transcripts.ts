@@ -75,16 +75,9 @@ async function updateEpisodeWithTranscript(
   privateKey: string | undefined,
   nbunksec?: string
 ): Promise<NostrEvent> {
-  // Create signer
+  // Create signer - use local signing for speed and reliability
   let signer;
-  if (nbunksec) {
-    console.log('🔐 Using nsyte bunker for remote signing');
-    const [bunkerUrl, _rest] = nbunksec.split('?');
-    signer = new NSyteBunkerSigner(bunkerUrl, nbunksec);
-  } else {
-    if (!privateKey) {
-      throw new Error('Private key is required when not using nbunksec');
-    }
+  if (privateKey) {
     console.log('🔐 Using local NSecSigner');
 
     // Convert nsec (bech32) to hex if needed
@@ -103,6 +96,8 @@ async function updateEpisodeWithTranscript(
     // Convert hex string to Uint8Array for NSecSigner
     const privateKeyBytes = new Uint8Array(Buffer.from(hexPrivateKey, 'hex'));
     signer = new NSecSigner(privateKeyBytes);
+  } else {
+    throw new Error('Private key is required for signing');
   }
 
   // Check if transcript tag already exists
