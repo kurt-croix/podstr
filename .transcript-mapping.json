@@ -1,0 +1,33 @@
+[
+  {
+    "dTag": "e027e162-bc79-4396-b6de-29e14a52d1c8",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_2-1775156304.vtt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_2-1775156304.vtt",
+    "success": true,
+    "event": {
+      "id": "def38ef5435bb16ceac234cf08eb2e735dce2411c65cbdfca901cf35d8395833",
+      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
+      "created_at": 1775140032,
+      "kind": 30054,
+      "tags": [
+        [
+          "d",
+          "e027e162-bc79-4396-b6de-29e14a52d1c8"
+        ],
+        [
+          "title",
+          "Ray County Commissioner's Meeting 4/2"
+        ],
+        [
+          "x",
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/a4ca68be21a595a8392a7381ebb8a394/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-2"
+        ],
+        [
+          "duration",
+          "3600"
+        ]
+      ],
+      "content": ""
+    }
+  }
+]
