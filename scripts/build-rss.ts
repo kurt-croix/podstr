@@ -439,6 +439,22 @@ async function fetchPodcastMetadataMultiRelay(relays: Array<{url: string, relay:
 }
 
 /**
+ * Load episodes from cache file if available
+ */
+async function loadEpisodesFromCache(): Promise<NostrEvent[] | null> {
+  const cachePath = '.episodes-cache.json';
+  try {
+    const cacheData = await fs.readFile(cachePath, 'utf-8');
+    const episodes = JSON.parse(cacheData) as NostrEvent[];
+    console.log(`💾 Loaded ${episodes.length} episodes from cache: ${cachePath}`);
+    return episodes;
+  } catch (error) {
+    // Cache file doesn't exist or is invalid
+    return null;
+  }
+}
+
+/**
  * Fetch podcast episodes from multiple Nostr relays
  */
 async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
@@ -634,8 +650,14 @@ async function buildRSS() {
         console.log('📄 Using podcast metadata from config file');
       }
 
-      // Fetch episodes from multiple relays
-      episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
+      // Try to load episodes from cache first to avoid duplicate fetches
+      const cachedEpisodes = await loadEpisodesFromCache();
+      if (cachedEpisodes && cachedEpisodes.length > 0) {
+        episodes = cachedEpisodes;
+      } else {
+        // Fetch episodes from multiple relays
+        episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
+      }
 
       // Fetch trailers from multiple relays
       trailers = await fetchPodcastTrailersMultiRelay(relays, creatorPubkeyHex);

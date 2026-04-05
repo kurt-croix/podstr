@@ -175,6 +175,15 @@ async function fetchLivestreams(_targetNpub: string, _since: number): Promise<No
 }
 
 /**
+ * Save episodes to cache file for reuse by other workflow steps
+ */
+async function saveEpisodesCache(episodes: NostrEvent[]): Promise<void> {
+  const cachePath = '.episodes-cache.json';
+  await fs.writeFile(cachePath, JSON.stringify(episodes, null, 2));
+  console.log(`💾 Episodes cache saved to: ${cachePath} (${episodes.length} episodes)`);
+}
+
+/**
  * Fetch existing episodes for duplicate detection
  */
 async function fetchExistingEpisodes(_targetNpub: string, episodeAuthorPubkey: string): Promise<NostrEvent[]> {
@@ -555,6 +564,8 @@ async function main() {
     let existingEpisodes: NostrEvent[];
     try {
       existingEpisodes = await fetchExistingEpisodes(config.targetNpub, signerInfo.pubkey);
+      // Save episodes to cache for reuse by other workflow steps
+      await saveEpisodesCache(existingEpisodes);
     } catch (error) {
       console.error('❌ Failed to fetch existing episodes:', error instanceof Error ? error.message : error);
       console.error('💡 This may be due to relay connectivity issues. Try again later or check relay status.');
