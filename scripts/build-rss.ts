@@ -653,7 +653,7 @@ async function buildRSS() {
       // Try to load episodes from cache first to avoid duplicate fetches
       const cachedEpisodes = await loadEpisodesFromCache();
       if (cachedEpisodes && cachedEpisodes.length > 0) {
-        episodes = cachedEpisodes;
+        episodes = cachedEpisodes.map(eventToPodcastEpisode);
       } else {
         // Fetch episodes from multiple relays
         episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
