@@ -1,0 +1,23 @@
+[
+  {
+    "dTag": "e027e162-bc79-4396-b6de-29e14a52d1c8",
+    "title": "Ray County Commissioner's Meeting 4/2",
+    "audioUrl": "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/a4ca68be21a595a8392a7381ebb8a394/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-2",
+    "timestamp": 1775156304,
+    "event": {
+      "id": "def38ef5435bb16ceac234cf08eb2e735dce2411c65cbdfca901cf35d8395833",
+      "pubkey": "f38a7f8e5d6c9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9e8d7c6b5a4b3",
+      "created_at": 1775140032,
+      "kind": 30054,
+      "tags": [
+        ["d", "e027e162-bc79-4396-b6de-29e14a52d1c8"],
+        ["title", "Ray County Commissioner's Meeting 4/2"],
+        ["summary", "Regular meeting of the Ray County Commissioners"],
+        ["x", "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/a4ca68be21a595a8392a7381ebb8a394/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-2"],
+        ["duration", "3600"]
+      ],
+      "content": "",
+      "sig": "test_signature_for_testing_purposes_only"
+    }
+  }
+]
