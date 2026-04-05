@@ -58,10 +58,19 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
+
+      - name: Install WhisperX
+        run: |
+          pip install git+https://github.com/m-bain/whisperx.git
 
       - name: Check past episodes for missing transcripts
         run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
@@ -79,11 +88,11 @@ jobs:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
           NBUNKSEC: ${{ secrets.NBUNKSEC }}
 
-      - name: Transcribe audio with OpenAI Whisper
+      - name: Transcribe audio with WhisperX
         run: npx -y tsx scripts/transcribe-audio.ts
-        timeout-minutes: 30
+        timeout-minutes: 120
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           TEST_MODE: ${{ github.event.inputs.test_mode == 'true' }}
         if: hashFiles('.episodes-to-transcribe.json') != ''
