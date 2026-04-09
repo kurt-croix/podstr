@@ -31,7 +31,7 @@ export class NSyteBunkerSigner implements NostrSigner {
     // Extract secret from nbunksec if present
     // Format: bunker://<pubkey>?relay=<relay>&secret=<secret>
     const secretMatch = nbunksec.match(/secret=([a-zA-Z0-9_-]+)/);
-    const secret = secretMatch ? secretMatch[1] : '';
+    const _secret = secretMatch ? secretMatch[1] : '';
 
     // Build connection string with secret
     // Format: bunker://<signer-pubkey>?relay=<relay>&secret=<secret>
