@@ -106,10 +106,9 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
     console.log(`⚡ TEST MODE: Transcribing 2-minute segment with 10-minute timeout`);
   }
 
-  // WhisperX command with diarization (use tiny model for speed)
+  // WhisperX command with pyannote/speaker-diarization-3.1 for speaker identification
   // Generate WebVTT format for PodcastIndex compliance
-  // Simplified command to ensure reliable performance
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model tiny --language en >/dev/null 2>&1`;
+  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model large-v3 --language en --diarize --hf_model pyannote/speaker-diarization-3.1`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
 
