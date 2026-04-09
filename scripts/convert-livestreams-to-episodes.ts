@@ -483,7 +483,7 @@ async function main() {
   console.log('📋 Configuration:');
   console.log('  - Batch mode:', config.batchMode);
   console.log('  - Target npub:', config.targetNpub);
-  console.log('  - Relays: wss://relay.primal.net, wss://relay.nostr.band, wss://relay.damus.io, wss://nos.lol, wss://relay.ditto.pub');
+  console.log('  - Relays: wss://relay.primal.net, wss://relay.damus.io, wss://nos.lol, wss://relay.ditto.pub');
 
   try {
     // Create signer first to get the episode author pubkey

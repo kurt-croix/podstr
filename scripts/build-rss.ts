@@ -618,7 +618,6 @@ async function buildRSS() {
     // Connect to multiple Nostr relays for better coverage
     const relayUrls = [
       'wss://relay.primal.net',
-      'wss://relay.nostr.band',
       'wss://relay.damus.io',
       'wss://nos.lol',
       'wss://relay.ditto.pub'

@@ -25,7 +25,6 @@ function NostrProvider(props: NostrProviderProps) {
   const multiRelayUrls = useRef<string[]>([
     'wss://relay.primal.net',  // Fast and reliable
     'wss://relay.damus.io',    // Good uptime
-    'wss://relay.nostr.band',  // Good data coverage
     'wss://nos.lol',           // Popular relay
     'wss://relay.ditto.pub'    // Good for publishing
   ]);
