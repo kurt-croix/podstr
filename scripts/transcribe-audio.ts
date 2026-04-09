@@ -84,7 +84,7 @@ async function extractAudioSegment(inputPath: string, outputPath: string, durati
 async function runWhisperX(audioPath: string, outputPath: string): Promise<void> {
   const hfToken = process.env.HF_TOKEN;
   const testMode = process.env.TEST_MODE === 'true';
-  const timeoutMinutes = testMode ? 10 : 120; // 10 minutes in test mode, 120 minutes normally
+  const timeoutMinutes = testMode ? 10 : 360; // 10 minutes in test mode, 6 hours normally
 
   // Extract short segment for testing
   let audioToTranscribe = audioPath;
@@ -257,12 +257,15 @@ async function main() {
     process.exit(0);
   }
 
-  // Limit to first episode for faster processing (diarization takes ~45 min per episode)
+  // Sort by timestamp (most recent first) and limit to 1 episode
+  episodes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   const MAX_EPISODES = 1;
   const episodesToProcess = episodes.slice(0, MAX_EPISODES);
   if (episodes.length > MAX_EPISODES) {
-    console.log(`⚠️  Limiting to ${MAX_EPISODES} episode per run for faster processing (${episodes.length} total found)`);
+    console.log(`⚠️  Limiting to ${MAX_EPISODES} episode per run (most recent first) (${episodes.length} total found)`);
   }
+
+  console.log(`📝 Transcribing most recent episode: ${episodesToProcess[0].title}`);
 
   // Create transcripts directory
   await fs.mkdir(TRANSCRIPTS_DIR, { recursive: true });
