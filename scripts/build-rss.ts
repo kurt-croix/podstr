@@ -10,7 +10,7 @@ import { addOP3Prefix } from '../src/lib/op3Utils.js';
 
 // Polyfill WebSocket for Node.js
 import WebSocket from 'ws';
-globalThis.WebSocket = WebSocket as any;
+globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
 
 // Podcast kinds used by PODSTR
 const PODCAST_KINDS = {
@@ -450,7 +450,7 @@ async function loadEpisodesFromCache(): Promise<NostrEvent[] | null> {
     const episodes = JSON.parse(cacheData) as NostrEvent[];
     console.log(`💾 Loaded ${episodes.length} episodes from cache: ${cachePath}`);
     return episodes;
-  } catch (error) {
+  } catch {
     // Cache file doesn't exist or is invalid
     return null;
   }

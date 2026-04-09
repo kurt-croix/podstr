@@ -9,7 +9,6 @@
 
 import { promises as fs } from 'fs';
 import { nip19 } from 'nostr-tools';
-import { NRelay1 } from '@nostrify/nostrify';
 import { queryRelay } from './lib/relay-query';
 
 const PODCAST_KIND = 30054;

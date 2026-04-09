@@ -66,7 +66,7 @@ async function extractAudioSegment(inputPath: string, outputPath: string, durati
     const cmd = `ffmpeg -i "${inputPath}" -t ${durationSeconds} -acodec libmp3lame -ab 128k "${outputPath}" -y 2>/dev/null`;
     console.log(`🎬 Extracting first ${durationSeconds} seconds for testing...`);
 
-    exec(cmd, (error, stdout, stderr) => {
+    exec(cmd, (error, _stdout, _stderr) => {
       if (error) {
         console.error('❌ FFmpeg error:', error.message);
         reject(new Error(`FFmpeg failed: ${error.message}`));
@@ -121,7 +121,7 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 
   // Create execution promise
   const executionPromise = new Promise<void>((resolve, reject) => {
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (error, stdout, stderr) => {
+    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (error, _stdout, _stderr) => {
       // Clean up segment file if it exists
       if (testMode && audioToTranscribe !== audioPath) {
         fs.unlink(audioToTranscribe).catch(() => {

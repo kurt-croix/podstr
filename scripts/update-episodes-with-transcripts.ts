@@ -25,11 +25,6 @@ interface TranscriptionResult {
   event?: NostrEvent; // Original episode event to avoid re-fetching
 }
 
-interface EpisodeWithTranscript {
-  dTag: string;
-  transcriptUrl: string;
-}
-
 const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
 
 /**
@@ -87,7 +82,7 @@ async function updateEpisodeWithTranscript(
   event: NostrEvent,
   transcriptUrl: string,
   privateKey: string | undefined,
-  nbunksec?: string
+  _nbunksec?: string
 ): Promise<NostrEvent> {
   // Create signer - use local signing for speed and reliability
   let signer;
@@ -149,10 +144,8 @@ async function publishEvent(event: NostrEvent, relayUrl: string): Promise<boolea
 
   return new Promise<boolean>((resolve) => {
     const ws = new WebSocket(relayUrl);
-    let timeoutId: NodeJS.Timeout;
 
-    // Set timeout
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       console.error(`      ❌ Publish timeout after ${TIMEOUT_MS}ms`);
       ws.close();
       resolve(false);
@@ -235,7 +228,7 @@ async function main() {
   let authorPubkey = '';
   if (config.nbunksec) {
     const [bunkerUrl, _rest] = config.nbunksec.split('?');
-    const bunker = new NSyteBunkerSigner(bunkerUrl, config.nbunksec);
+    const _bunker = new NSyteBunkerSigner(bunkerUrl, config.nbunksec);
     // Get pubkey from bunker (this may require a connection)
     // For now, we'll use the event's pubkey
   } else {

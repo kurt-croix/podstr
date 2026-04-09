@@ -14,7 +14,6 @@
 
 import { Console } from 'console';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { NRelay1 } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { WebSocket } from 'ws';
 import { promises as fs } from 'fs';
