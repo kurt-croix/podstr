@@ -108,7 +108,7 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 
   // WhisperX command with pyannote/speaker-diarization-3.1 for speaker identification
   // Generate WebVTT format for PodcastIndex compliance
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model large-v3 --language en --diarize --hf_model pyannote/speaker-diarization-3.1`;
+  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model large-v3 --language en --diarize --diarize_model pyannote/speaker-diarization-3.1 --hf_token ${hfToken}`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
 
