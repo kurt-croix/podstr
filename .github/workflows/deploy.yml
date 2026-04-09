@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   # Runs on pushes targeting default branch
   push:
-    branches: ["main", "bugfixes"]
+    branches: ["main", "bugfixes", "feat/*"]
 
   # Schedule automatic deployment Wednesday and Thursday at 1pm Central
   schedule:
@@ -30,11 +30,10 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between run in-progress and latest queued.
-# Cancel in-progress runs to avoid getting stuck in pending state
+# Allow concurrent runs so transcription jobs don't cancel each other
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: false
 
 jobs:
   # Single deploy job
