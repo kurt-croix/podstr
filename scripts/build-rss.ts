@@ -144,14 +144,16 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
 
       // Build podcast:transcript tag with PodcastIndex specification attributes
       const transcriptTag = transcriptUrl ? (() => {
-        // Determine transcript type from URL or default to text/vtt (WebVTT format)
-        let transcriptType = 'text/vtt'; // Default to WebVTT for PodcastIndex compliance
+        // Determine transcript type from URL
+        let transcriptType = 'application/srt'; // Default to SRT format
         if (transcriptUrl.endsWith('.html') || transcriptUrl.endsWith('.htm')) {
           transcriptType = 'text/html';
         } else if (transcriptUrl.endsWith('.json')) {
           transcriptType = 'application/json';
+        } else if (transcriptUrl.endsWith('.vtt')) {
+          transcriptType = 'text/vtt';
         } else if (transcriptUrl.endsWith('.txt')) {
-          transcriptType = 'text/plain'; // Legacy .txt files
+          transcriptType = 'text/plain';
         }
 
         // Build attributes array
@@ -165,8 +167,8 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
           attributes.push(`language="${escapeXml(podcastConfig.podcast.language)}"`);
         }
 
-        // Add rel="captions" if this is a VTT file (has time codes)
-        if (transcriptType === 'text/vtt') {
+        // Add rel="captions" for time-coded formats (SRT, VTT)
+        if (transcriptType === 'application/srt' || transcriptType === 'text/vtt') {
           attributes.push(`rel="captions"`);
         }
 

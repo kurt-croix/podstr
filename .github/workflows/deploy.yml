@@ -94,7 +94,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-          TEST_MODE: ${{ github.event.inputs.test_mode == 'true' }}
+          TEST_MODE: 'true'
         if: hashFiles('.episodes-to-transcribe.json') != ''
 
       - name: Update episodes with transcript URLs

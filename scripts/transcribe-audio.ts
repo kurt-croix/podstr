@@ -107,8 +107,8 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
   }
 
   // WhisperX command with pyannote/speaker-diarization-3.1 for speaker identification
-  // Generate WebVTT format for PodcastIndex compliance
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format vtt --model large-v3 --language en --diarize --diarize_model pyannote/speaker-diarization-3.1 --hf_token ${hfToken}`;
+  // Generate SRT format for PodcastIndex compliance
+  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format srt --model large-v3 --language en --diarize --diarize_model pyannote/speaker-diarization-3.1 --hf_token ${hfToken}`;
 
   console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
 
@@ -139,21 +139,19 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
         console.log('✅ WhisperX completed successfully');
       }
 
-      // WhisperX creates a .vtt file in the output directory
-      // The file will have the same name as the input audio file
+      // WhisperX creates a .srt file in the output directory
       const inputBasename = path.basename(audioToTranscribe, path.extname(audioToTranscribe));
-      const vttFile = path.join(path.dirname(outputPath), `${inputBasename}.vtt`);
+      const srtFile = path.join(path.dirname(outputPath), `${inputBasename}.srt`);
 
-      // Add test mode note to WebVTT transcript
+      // Add test mode note to SRT transcript
       if (testMode) {
-        let vttContent = await fs.readFile(vttFile, 'utf-8');
-        // Insert test mode note after the WEBVTT header
-        vttContent = vttContent.replace('WEBVTT', 'WEBVTT\n\nNOTE TEST MODE TRANSCRIPT - First 2 minutes only');
-        await fs.writeFile(vttFile, vttContent);
+        let srtContent = await fs.readFile(srtFile, 'utf-8');
+        srtContent = 'NOTE TEST MODE TRANSCRIPT - First 2 minutes only\n\n' + srtContent;
+        await fs.writeFile(srtFile, srtContent);
       }
 
       // Move/rename to the desired output path
-      fs.rename(vttFile, outputPath)
+      fs.rename(srtFile, outputPath)
         .then(() => {
           console.log(`✅ Transcript saved to: ${outputPath}`);
           resolve();
@@ -182,7 +180,7 @@ async function transcribeEpisode(episode: EpisodeMetadata, tempDir: string): Pro
   const safeTitle = sanitizeFilename(title);
   const timestamp = episode.timestamp || Date.now();
   const audioFilename = `${safeTitle}-${timestamp}.mp3`;
-  const transcriptFilename = `${safeTitle}-${timestamp}.vtt`; // Use .vtt for WebVTT format
+  const transcriptFilename = `${safeTitle}-${timestamp}.srt`;
 
   const audioPath = path.join(tempDir, audioFilename);
   const transcriptPath = path.join(TRANSCRIPTS_DIR, transcriptFilename);
@@ -292,7 +290,7 @@ async function main() {
 
     const safeTitle = sanitizeFilename(episode.title);
     const timestamp = episode.timestamp || Date.now();
-    const transcriptFilename = `${safeTitle}-${timestamp}.vtt`; // Use .vtt for WebVTT format
+    const transcriptFilename = `${safeTitle}-${timestamp}.srt`;
     const transcriptPath = path.join(TRANSCRIPTS_DIR, transcriptFilename);
 
     // Check if transcript already exists
