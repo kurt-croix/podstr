@@ -729,6 +729,32 @@ async function main() {
           // Check if already converted
           if (isLivestreamConverted(livestream, existingEpisodes)) {
             console.log(`⏭️  Skipping (already converted): ${streamDTag}`);
+
+            // Check if the existing episode has a transcript, if not, add it to transcription queue
+            const existingEpisode = existingEpisodes.find(ep => {
+              const livestreamTag = ep.tags.find(([name]) => name === 'livestream');
+              return livestreamTag && livestreamTag[1] === `30311:${livestream.pubkey}:${streamDTag}`;
+            });
+
+            if (existingEpisode) {
+              const hasTranscript = existingEpisode.tags.some(([name]) => name === 'transcript');
+              if (!hasTranscript) {
+                const audioUrl = existingEpisode.tags.find(t => t[0] === 'audio')?.[1];
+                if (audioUrl) {
+                  console.log(`   📝 Adding existing episode to transcription queue (missing transcript)`);
+                  episodesForTranscription.push({
+                    dTag: existingEpisode.tags.find(t => t[0] === 'd')?.[1] || 'unknown',
+                    title: existingEpisode.tags.find(t => t[0] === 'title')?.[1] || 'Untitled',
+                    audioUrl,
+                    timestamp: existingEpisode.created_at,
+                    event: existingEpisode, // Include original event to avoid re-fetching
+                  });
+                }
+              } else {
+                console.log(`   ✅ Existing episode already has a transcript`);
+              }
+            }
+
             skippedCount.value++;
             summaries.push({
               livestreamAddress: `${livestream.pubkey}:${streamDTag}`,
