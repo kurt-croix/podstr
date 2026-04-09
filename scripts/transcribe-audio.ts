@@ -11,7 +11,7 @@
 
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { EpisodeMetadata } from './lib/conversion-types';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -108,9 +108,21 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
 
   // WhisperX command with pyannote/speaker-diarization-3.1 for speaker identification
   // Generate SRT format for PodcastIndex compliance
-  const cmd = `huggingface-cli login --token ${hfToken} >/dev/null 2>&1 && whisperx "${audioToTranscribe}" --output_dir "${path.dirname(outputPath)}" --output_format srt --model large-v3 --language en --diarize --diarize_model pyannote/speaker-diarization-3.1 --hf_token ${hfToken}`;
+  // Login first, then run whisperx with progress bar and real-time output
+  const loginCmd = `huggingface-cli login --token ${hfToken}`;
+  const whisperArgs = [
+    audioToTranscribe,
+    '--output_dir', path.dirname(outputPath),
+    '--output_format', 'srt',
+    '--model', 'large-v3',
+    '--language', 'en',
+    '--diarize',
+    '--diarize_model', 'pyannote/speaker-diarization-3.1',
+    '--hf_token', hfToken,
+    '--print_progress', 'True',
+  ];
 
-  console.log(`🔧 Command: huggingface-cli login --token *** && whisperx "${audioToTranscribe}" ... (output suppressed)`);
+  console.log(`🔧 Logging into Hugging Face...`);
 
   // Create timeout promise
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -119,47 +131,82 @@ async function runWhisperX(audioPath: string, outputPath: string): Promise<void>
     }, timeoutMinutes * 60 * 1000);
   });
 
-  // Create execution promise
+  // Create execution promise using spawn for real-time output streaming
   const executionPromise = new Promise<void>((resolve, reject) => {
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (error, _stdout, _stderr) => {
-      // Clean up segment file if it exists
-      if (testMode && audioToTranscribe !== audioPath) {
-        fs.unlink(audioToTranscribe).catch(() => {
-          // Ignore cleanup errors
-        });
-      }
-
-      if (error) {
-        console.error('❌ WhisperX error:', error.message);
-        reject(new Error(`WhisperX failed: ${error.message}`));
+    // Step 1: Login to HF
+    exec(loginCmd, (loginError) => {
+      if (loginError) {
+        console.error('❌ HF login failed:', loginError.message);
+        reject(new Error(`HF login failed: ${loginError.message}`));
         return;
       }
+      console.log(`✅ HF login successful`);
+      console.log(`🎙️  Starting WhisperX with progress output...`);
+      console.log(`🔧 whisperx ${whisperArgs.filter(a => !a.startsWith('hf_')).join(' ')}`);
 
-      if (stdout && stdout.trim()) {
+      // Step 2: Run whisperx with spawn for real-time output
+      const proc = spawn('whisperx', whisperArgs);
+
+      proc.stdout.on('data', (data: Buffer) => {
+        const lines = data.toString().split('\n').filter(Boolean);
+        for (const line of lines) {
+          console.log(`  ${line}`);
+        }
+      });
+
+      proc.stderr.on('data', (data: Buffer) => {
+        const lines = data.toString().split('\n').filter(Boolean);
+        for (const line of lines) {
+          // Progress bars and status go to stderr
+          if (line.includes('%') || line.includes('|')) {
+            // Overwrite-style progress - just log it
+            process.stdout.write(`  ${line}\r`);
+          } else {
+            console.log(`  ${line}`);
+          }
+        }
+      });
+
+      proc.on('close', async (code) => {
+        // Clean up segment file if it exists
+        if (testMode && audioToTranscribe !== audioPath) {
+          fs.unlink(audioToTranscribe).catch(() => {});
+        }
+
+        if (code !== 0) {
+          console.error(`❌ WhisperX exited with code ${code}`);
+          reject(new Error(`WhisperX failed with exit code ${code}`));
+          return;
+        }
+
         console.log('✅ WhisperX completed successfully');
-      }
 
-      // WhisperX creates a .srt file in the output directory
-      const inputBasename = path.basename(audioToTranscribe, path.extname(audioToTranscribe));
-      const srtFile = path.join(path.dirname(outputPath), `${inputBasename}.srt`);
+        // WhisperX creates a .srt file in the output directory
+        const inputBasename = path.basename(audioToTranscribe, path.extname(audioToTranscribe));
+        const srtFile = path.join(path.dirname(outputPath), `${inputBasename}.srt`);
 
-      // Add test mode note to SRT transcript
-      if (testMode) {
-        let srtContent = await fs.readFile(srtFile, 'utf-8');
-        srtContent = 'NOTE TEST MODE TRANSCRIPT - First 2 minutes only\n\n' + srtContent;
-        await fs.writeFile(srtFile, srtContent);
-      }
+        // Add test mode note to SRT transcript
+        if (testMode) {
+          let srtContent = await fs.readFile(srtFile, 'utf-8');
+          srtContent = 'NOTE TEST MODE TRANSCRIPT - First 2 minutes only\n\n' + srtContent;
+          await fs.writeFile(srtFile, srtContent);
+        }
 
-      // Move/rename to the desired output path
-      fs.rename(srtFile, outputPath)
-        .then(() => {
+        // Move/rename to the desired output path
+        try {
+          await fs.rename(srtFile, outputPath);
           console.log(`✅ Transcript saved to: ${outputPath}`);
           resolve();
-        })
-        .catch(err => {
+        } catch (err) {
           console.error('❌ Failed to move transcript:', err);
           reject(err);
-        });
+        }
+      });
+
+      proc.on('error', (err) => {
+        console.error('❌ Failed to spawn whisperx:', err.message);
+        reject(new Error(`Failed to spawn whisperx: ${err.message}`));
+      });
     });
   });
 
