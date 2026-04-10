@@ -44,8 +44,8 @@ interface SrtEntry {
 
 const TRANSCRIPT_MAPPING_PATH = path.resolve('.transcript-mapping.json');
 const SHOW_NOTES_MAPPING_PATH = path.resolve('.show-notes-mapping.json');
-const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
-const XAI_MODEL = 'grok-3-mini';
+const ZHIPU_API_URL = 'https://api.z.ai/api/paas/v4/chat/completions';
+const ZHIPU_MODEL = 'glm-4-flash';
 
 /**
  * Parse SRT file content into structured entries
@@ -144,9 +144,9 @@ function extractCleanText(entries: SrtEntry[]): { text: string; sections: { time
 /**
  * Call xAI (Grok) chat completions API
  */
-async function summarizeWithGrok(transcript: string, targetWordCount: number): Promise<string> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) throw new Error('XAI_API_KEY is required');
+async function summarizeWithGLM(transcript: string, targetWordCount: number): Promise<string> {
+  const apiKey = process.env.ZHIPU_API_KEY;
+  if (!apiKey) throw new Error('ZHIPU_API_KEY is required');
 
   const systemPrompt = `You are a professional podcast show notes writer. You write clear, informative summaries of government meeting recordings. Focus on key decisions, discussions, votes, and action items. Write in a neutral, informative tone. Do not invent information that is not in the transcript.`;
 
@@ -155,25 +155,26 @@ async function summarizeWithGrok(transcript: string, targetWordCount: number): P
 TRANSCRIPT:
 ${transcript}`;
 
-  const response = await fetch(XAI_API_URL, {
+  const response = await fetch(ZHIPU_API_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: XAI_MODEL,
+      model: ZHIPU_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.3,
+      max_tokens: 4095,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`xAI API error (${response.status}): ${errorText}`);
+    throw new Error(`Zhipu API error (${response.status}): ${errorText}`);
   }
 
   const result = await response.json() as {
@@ -187,7 +188,7 @@ ${transcript}`;
     return result.choices[0].message.content;
   }
 
-  throw new Error('Unexpected xAI API response format');
+  throw new Error('Unexpected Zhipu API response format');
 }
 
 /**
@@ -213,7 +214,7 @@ async function generateShowNotes(cleanText: string, sections: { time: string; te
   for (const [key, config] of Object.entries(summaryConfigs)) {
     console.log(`\n  📊 Generating ${config.label} summary (~${config.targetWords} words)...`);
     try {
-      const summary = await summarizeWithGrok(cleanText, config.targetWords);
+      const summary = await summarizeWithGLM(cleanText, config.targetWords);
       const summaryWords = summary.split(/\s+/).length;
       summaries[key] = { text: summary, wordCount: summaryWords, charCount: summary.length };
       console.log(`  ✅ ${config.label}: ${summaryWords} words, ${summary.length} chars`);
@@ -236,8 +237,8 @@ async function generateShowNotes(cleanText: string, sections: { time: string; te
 async function main() {
   console.log('📝 Starting show notes generation...');
 
-  if (!process.env.XAI_API_KEY) {
-    console.error('❌ XAI_API_KEY environment variable is required');
+  if (!process.env.ZHIPU_API_KEY) {
+    console.error('❌ ZHIPU_API_KEY environment variable is required');
     process.exit(1);
   }
 
@@ -312,6 +313,7 @@ async function main() {
         dTag: transcript.dTag,
         title,
         showNotes: '',
+        summaries: {},
         success: false,
         error: errorMessage,
       });

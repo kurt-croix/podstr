@@ -108,7 +108,7 @@ jobs:
         run: npx -y tsx scripts/generate-show-notes.ts
         timeout-minutes: 30
         env:
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Build RSS feed and React app
