@@ -229,7 +229,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
 
   const title = tags.get('title')?.[0] || 'Untitled Episode';
-  const description = tags.get('description')?.[0];
+  const description = tags.get('description')?.[0] || tags.get('summary')?.[0];
   const imageUrl = tags.get('image')?.[0];
 
   // Extract audio URL and type from audio tag
@@ -523,12 +523,12 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
         newContent = showNotes;
         modified = true;
       }
-      // Also update/add summary tag (becomes <description> in RSS)
-      const summaryIdx = newTags.findIndex(t => t[0] === 'summary');
-      if (summaryIdx === -1) {
-        newTags.push(['summary', showNotes]);
+      // Update/add description tag (becomes <description> in RSS)
+      const descIdx = newTags.findIndex(t => t[0] === 'description');
+      if (descIdx === -1) {
+        newTags.push(['description', showNotes]);
       } else {
-        newTags[summaryIdx] = ['summary', showNotes];
+        newTags[descIdx] = ['description', showNotes];
       }
       modified = true;
       console.log(`  📝 Added show notes for ${dTag}`);
