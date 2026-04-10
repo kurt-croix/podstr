@@ -147,100 +147,114 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
 }
 
 /**
- * Call HF Inference Providers API (OpenAI-compatible chat completions)
+ * Call HF Inference API with facebook/bart-large-cnn for summarization
  */
-async function queryHuggingFace(userPrompt: string): Promise<string> {
+async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<string> {
   const hfToken = process.env.HF_TOKEN;
   if (!hfToken) throw new Error('HF_TOKEN is required');
 
-  // Use HF's hosted inference with OpenAI-compatible chat completions endpoint
-  const url = 'https://router.huggingface.co/hf-inference/v3/openai/chat/completions';
-  const model = 'mistralai/Mistral-7B-Instruct-v0.3';
+  const url = 'https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn';
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${hfToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: userPrompt }],
-      max_tokens: 1024,
-      temperature: 0.3,
-    }),
-  });
+  // BART-large-CNN max input is ~1024 tokens; limit input text for safety
+  const inputText = text.slice(0, 3000);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HF API error (${response.status}): ${errorText}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hfToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: inputText,
+        parameters: {
+          max_length: 150,
+          min_length: 30,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      // Model is loading, retry after waiting
+      if (response.status === 503) {
+        let waitTime = 30;
+        try {
+          const errorJson = JSON.parse(errorText);
+          waitTime = errorJson.estimated_time || 30;
+        } catch { /* use default */ }
+        console.log(`  ⏳ Model loading, waiting ${Math.min(waitTime, 60)}s...`);
+        await new Promise(resolve => setTimeout(resolve, Math.min(waitTime * 1000, 60000)));
+        continue;
+      }
+
+      throw new Error(`HF API error (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json() as Array<{ summary_text: string }>;
+
+    if (Array.isArray(result) && result[0]?.summary_text) {
+      return result[0].summary_text;
+    }
+
+    throw new Error('Unexpected HF API response format');
   }
 
-  const result = await response.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-
-  if (result.choices?.[0]?.message?.content) {
-    return result.choices[0].message.content.trim();
-  }
-
-  throw new Error('Unexpected HF API response format');
+  throw new Error('Max retries exceeded for HF API');
 }
 
 /**
- * Generate show notes from transcript text
+ * Generate show notes from transcript text using BART-large-CNN summarization
  */
 async function generateShowNotes(fullText: string, sections: { time: string; text: string }[]): Promise<string> {
   console.log(`📝 Generating show notes from ${sections.length} sections...`);
 
-  // For long transcripts, summarize in chunks then combine
-  const CHUNK_SIZE = 3000;
-  const chunks: string[] = [];
+  const sectionSummaries: { time: string; summary: string }[] = [];
 
-  if (fullText.length > CHUNK_SIZE) {
-    // Summarize each section
-    for (const section of sections) {
-      if (section.text.length < 100) continue;
+  // Summarize each section with BART
+  for (const section of sections) {
+    if (section.text.length < 100) continue;
 
-      const chunkPrompt = `Summarize this section of a podcast transcript in 1-2 sentences. Focus on key decisions, topics, or actions discussed.
+    try {
+      const summary = await summarizeWithBart(section.text);
+      sectionSummaries.push({ time: section.time, summary });
+      console.log(`  ✅ Summarized section at ${section.time}`);
+    } catch (error) {
+      console.warn(`  ⚠️  Failed to summarize section at ${section.time}: ${error instanceof Error ? error.message : error}`);
+      // Fallback: use first 200 chars of section text
+      sectionSummaries.push({ time: section.time, summary: section.text.slice(0, 200) + '...' });
+    }
 
-Transcript section (starting at ${section.time}):
-${section.text.slice(0, CHUNK_SIZE)}`;
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
 
-      try {
-        const summary = await queryHuggingFace(chunkPrompt);
-        chunks.push(`[${section.time}] ${summary}`);
-        console.log(`  ✅ Summarized section at ${section.time}`);
-      } catch (error) {
-        console.warn(`  ⚠️  Failed to summarize section at ${section.time}: ${error instanceof Error ? error.message : error}`);
-        // Fallback: use first 200 chars of section text
-        chunks.push(`[${section.time}] ${section.text.slice(0, 200)}...`);
-      }
-
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  // If we have very few sections, also summarize the full text
+  if (sectionSummaries.length <= 2 && fullText.length > 500) {
+    try {
+      const overallSummary = await summarizeWithBart(fullText.slice(0, 3000));
+      sectionSummaries.unshift({ time: '0:00', summary: overallSummary });
+      console.log(`  ✅ Generated overall summary`);
+    } catch (error) {
+      console.warn(`  ⚠️  Overall summary failed: ${error instanceof Error ? error.message : error}`);
     }
   }
 
-  // Combine section summaries into final show notes
-  const combinedSummaries = chunks.join('\n');
-  const finalPrompt = `You are generating show notes for a government meeting podcast. Based on the following section summaries, create well-formatted show notes with:
+  // Format show notes from section summaries
+  const lines: string[] = [];
+  lines.push('## Summary');
+  lines.push('');
+  lines.push(sectionSummaries.map(s => s.summary).join(' '));
+  lines.push('');
+  lines.push('## Timeline');
+  lines.push('');
 
-1. **Summary**: A 2-3 paragraph overview of the entire meeting
-2. **Key Topics**: A bulleted list of the main topics discussed
-3. **Timeline**: Notable moments with timestamps
-
-Section summaries:
-${combinedSummaries.slice(0, 8000)}`;
-
-  try {
-    const finalNotes = await queryHuggingFace(finalPrompt);
-    return finalNotes;
-  } catch (error) {
-    console.warn(`⚠️  Final generation failed, using section summaries: ${error instanceof Error ? error.message : error}`);
-    // Fallback: use the section summaries directly
-    return `## Meeting Summary\n\n${combinedSummaries}`;
+  for (const { time, summary } of sectionSummaries) {
+    lines.push(`[${time}] ${summary}`);
   }
+
+  return lines.join('\n');
 }
 
 /**
