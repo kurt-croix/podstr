@@ -65,10 +65,10 @@ function parseSrt(content: string): SrtEntry[] {
     if (!timeMatch) continue;
 
     const textLines = lines.slice(2).join(' ');
-    // Check for speaker label like [SPEAKER_00] or <v Speaker 1>
-    const speakerMatch = textLines.match(/\[SPEAKER_\d+\]\s*|<v\s+([^>]+)>/);
+    // Check for speaker label like [SPEAKER_00]: or <v Speaker 1>
+    const speakerMatch = textLines.match(/\[SPEAKER_\d+\]|<v\s+([^>]+)>/);
     const speaker = speakerMatch ? (speakerMatch[1] || speakerMatch[0]).trim() : undefined;
-    const text = textLines.replace(/\[SPEAKER_\d+\]\s*/g, '').replace(/<v\s+[^>]+>/g, '').trim();
+    const text = textLines.replace(/\[SPEAKER_\d+\]:?\s*/g, '').replace(/<v\s+[^>]+>:?\s*/g, '').trim();
 
     if (!text) continue;
 
@@ -121,7 +121,7 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
 
   for (const entry of entries) {
     const seconds = toSeconds(entry.startTime);
-    const label = entry.speaker ? `[${entry.speaker}] ` : '';
+    const label = entry.speaker ? `${entry.speaker} ` : '';
 
     if (!sectionStart || seconds - toSeconds(sectionStart) >= SECTION_BREAK_SECONDS) {
       if (currentSection.trim()) {
@@ -151,8 +151,8 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
  */
 function cleanTextForSummarization(text: string): string {
   return text
-    .replace(/\[SPEAKER_\d+\]\s*/g, '')
-    .replace(/<v\s+[^>]+>\s*/g, '')
+    .replace(/\[SPEAKER_\d+\]:?\s*/g, '')
+    .replace(/<v\s+[^>]+>:?\s*/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -166,10 +166,9 @@ async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<
 
   const url = 'https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn';
 
-  // BART-large-CNN max input is ~1024 tokens; limit input text for safety
-  const inputText = text.slice(0, 3000);
-  console.log(`📏 BART input: ${inputText.length} chars (from ${text.length} total)`);
-  console.log(`📄 Input text:\n${inputText}\n---END INPUT---`);
+  const inputText = text;
+  console.log(`📏 BART input: ${inputText.length} chars`);
+  console.log(`📄 First 500 chars:\n${inputText.slice(0, 500)}\n---END PREVIEW---`);
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const response = await fetch(url, {
@@ -181,8 +180,8 @@ async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<
       body: JSON.stringify({
         inputs: inputText,
         parameters: {
-          max_length: 150,
-          min_length: 30,
+          max_length: 300,
+          min_length: 80,
         },
       }),
     });
