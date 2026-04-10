@@ -30,6 +30,7 @@ interface ShowNotesResult {
   dTag: string;
   title: string;
   showNotes: string;
+  summaries: Record<string, { text: string; wordCount: number; charCount: number }>;
   success: boolean;
   error?: string;
 }
@@ -160,15 +161,11 @@ function cleanTextForSummarization(text: string): string {
 /**
  * Call HF Inference API with facebook/bart-large-cnn for summarization
  */
-async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<string> {
+async function summarizeWithBart(text: string, maxLength: number, minLength: number, maxRetries: number = 3): Promise<string> {
   const hfToken = process.env.HF_TOKEN;
   if (!hfToken) throw new Error('HF_TOKEN is required');
 
   const url = 'https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn';
-
-  const inputText = text;
-  console.log(`📏 BART input: ${inputText.length} chars`);
-  console.log(`📄 First 500 chars:\n${inputText.slice(0, 500)}\n---END PREVIEW---`);
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const response = await fetch(url, {
@@ -178,10 +175,10 @@ async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: inputText,
+        inputs: text,
         parameters: {
-          max_length: 300,
-          min_length: 80,
+          max_length: maxLength,
+          min_length: minLength,
         },
       }),
     });
@@ -218,26 +215,54 @@ async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<
 
 /**
  * Generate show notes from transcript text using BART-large-CNN summarization
+ * Produces multiple summaries at different lengths for comparison
  */
-async function generateShowNotes(fullText: string, sections: { time: string; text: string }[]): Promise<string> {
+async function generateShowNotes(fullText: string, sections: { time: string; text: string }[]): Promise<{ best: string; summaries: Record<string, { text: string; wordCount: number; charCount: number }> }> {
   const cleanFullText = cleanTextForSummarization(fullText);
-  console.log(`📝 Generating show notes from ${cleanFullText.length} chars of cleaned text...`);
+  const wordCount = cleanFullText.split(/\s+/).length;
+  // Rough token estimate: ~1.3 tokens per word for English
+  const estimatedInputTokens = Math.round(wordCount * 1.3);
+
+  console.log(`📝 Generating show notes from ${cleanFullText.length} chars (~${wordCount} words, ~${estimatedInputTokens} tokens)...`);
 
   // Dump cleaned text for debugging
   const debugPath = path.resolve('.show-notes-input.txt');
   await fs.writeFile(debugPath, cleanFullText);
   console.log(`💾 Cleaned transcript dumped to: ${debugPath}`);
 
-  // Summarize the full transcript (or as much as fits in BART's context window)
-  try {
-    const summary = await summarizeWithBart(cleanFullText);
-    console.log(`  ✅ Generated summary`);
-    return summary;
-  } catch (error) {
-    console.warn(`  ⚠️  Summarization failed: ${error instanceof Error ? error.message : error}`);
-    // Fallback: use first 500 chars of cleaned text
-    return cleanFullText.slice(0, 500) + '...';
+  // Define summary configurations
+  const summaryConfigs: Record<string, { maxTokens: number; minTokens: number; label: string }> = {};
+
+  // Word-count based: ~1.3 tokens per word
+  summaryConfigs['500words'] = { maxTokens: 700, minTokens: 400, label: '500 words' };
+  summaryConfigs['1000words'] = { maxTokens: 1400, minTokens: 800, label: '1000 words' };
+  summaryConfigs['1500words'] = { maxTokens: 2000, minTokens: 1200, label: '1500 words' };
+
+  // Percentage based: output tokens = estimated input tokens * percentage
+  summaryConfigs['10pct'] = { maxTokens: Math.round(estimatedInputTokens * 0.10), minTokens: Math.round(estimatedInputTokens * 0.05), label: '10%' };
+  summaryConfigs['20pct'] = { maxTokens: Math.round(estimatedInputTokens * 0.20), minTokens: Math.round(estimatedInputTokens * 0.10), label: '20%' };
+  summaryConfigs['30pct'] = { maxTokens: Math.round(estimatedInputTokens * 0.30), minTokens: Math.round(estimatedInputTokens * 0.15), label: '30%' };
+
+  const summaries: Record<string, { text: string; wordCount: number; charCount: number }> = {};
+
+  for (const [key, config] of Object.entries(summaryConfigs)) {
+    console.log(`\n  📊 Generating ${config.label} summary (max_tokens: ${config.maxTokens}, min_tokens: ${config.minTokens})...`);
+    try {
+      const summary = await summarizeWithBart(cleanFullText, config.maxTokens, config.minTokens);
+      const summaryWords = summary.split(/\s+/).length;
+      summaries[key] = { text: summary, wordCount: summaryWords, charCount: summary.length };
+      console.log(`  ✅ ${config.label}: ${summaryWords} words, ${summary.length} chars`);
+      console.log(`  📄 ${config.label} summary:\n${summary}\n---END ${config.label.toUpperCase()}---`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(`  ⚠️  ${config.label} failed: ${msg}`);
+      summaries[key] = { text: `[FAILED: ${msg}]`, wordCount: 0, charCount: 0 };
+    }
   }
+
+  // Use 20% summary as default "best" for RSS feed
+  const best = summaries['20pct']?.text || summaries['500words']?.text || cleanFullText.slice(0, 500) + '...';
+  return { best, summaries };
 }
 
 /**
@@ -293,16 +318,21 @@ async function main() {
       console.log(`  📊 Extracted ${sections.length} sections from ${text.length} chars`);
 
       // Generate show notes
-      const showNotes = await generateShowNotes(text, sections);
+      const { best, summaries } = await generateShowNotes(text, sections);
 
       results.push({
         dTag: transcript.dTag,
         title,
-        showNotes,
+        showNotes: best,
+        summaries,
         success: true,
       });
 
-      console.log(`  ✅ Show notes generated (${showNotes.length} chars)`);
+      console.log(`  ✅ Best summary (${best.split(/\s+/).length} words, ${best.length} chars)`);
+      console.log(`\n  📊 Summary comparison:`);
+      for (const [key, s] of Object.entries(summaries)) {
+        console.log(`    ${key}: ${s.wordCount} words, ${s.charCount} chars`);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`  ❌ Failed: ${errorMessage}`);
