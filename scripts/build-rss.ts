@@ -179,7 +179,6 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
     <item>
       <title>${escapeXml(episode.title)}</title>
       <description>${escapeXml(episode.description || '')}</description>
-      ${episode.shortSummary ? `<itunes:summary>${escapeXml(episode.shortSummary)}</itunes:summary>` : ''}
       <link>${escapeXml(audioUrl)}</link>
       <pubDate>${episode.publishDate.toUTCString()}</pubDate>
       <guid isPermaLink="false">${episode.authorPubkey}:${episode.identifier}</guid>
@@ -231,7 +230,6 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
 
   const title = tags.get('title')?.[0] || 'Untitled Episode';
   const description = tags.get('description')?.[0];
-  const shortSummary = tags.get('summary')?.[0];
   const imageUrl = tags.get('image')?.[0];
 
   // Extract audio URL and type from audio tag
@@ -296,7 +294,6 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     id: event.id,
     title,
     description,
-    shortSummary,
     content,
     audioUrl,
     audioType,
@@ -520,22 +517,23 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
 
     // Add show notes if available
     const notes = showNotesMap.get(dTag);
+    const tUrl = transcriptMap.get(dTag) || episode.tags.find(t => t[0] === 'transcript')?.[1];
     if (notes) {
+      // Build combined description: short summary + full description + transcript link
+      const parts: string[] = [notes.shortSummary];
+      parts.push('\n\n===== FULL DESCRIPTION =====\n\n');
+      parts.push(notes.showNotes);
+      if (tUrl) {
+        parts.push(`\n\nTranscription: ${tUrl}`);
+      }
+      const combinedDescription = parts.join('');
+
       // Update/add description tag (becomes <description> in RSS)
       const descIdx = newTags.findIndex(t => t[0] === 'description');
       if (descIdx === -1) {
-        newTags.push(['description', notes.showNotes]);
+        newTags.push(['description', combinedDescription]);
       } else {
-        newTags[descIdx] = ['description', notes.showNotes];
-      }
-      // Add short summary tag (becomes <itunes:summary> in RSS)
-      if (notes.shortSummary) {
-        const summaryIdx = newTags.findIndex(t => t[0] === 'summary');
-        if (summaryIdx === -1) {
-          newTags.push(['summary', notes.shortSummary]);
-        } else {
-          newTags[summaryIdx] = ['summary', notes.shortSummary];
-        }
+        newTags[descIdx] = ['description', combinedDescription];
       }
       modified = true;
       console.log(`  📝 Added show notes for ${dTag}`);

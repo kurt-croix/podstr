@@ -7,7 +7,6 @@ export interface PodcastEpisode {
   id: string;
   title: string;
   description?: string;
-  shortSummary?: string;
   content?: string;
   audioUrl: string;
   audioType?: string;
