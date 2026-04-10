@@ -147,6 +147,17 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
 }
 
 /**
+ * Strip speaker labels and other diarization artifacts from text
+ */
+function cleanTextForSummarization(text: string): string {
+  return text
+    .replace(/\[SPEAKER_\d+\]\s*/g, '')
+    .replace(/<v\s+[^>]+>\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Call HF Inference API with facebook/bart-large-cnn for summarization
  */
 async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<string> {
@@ -217,7 +228,7 @@ async function generateShowNotes(fullText: string, sections: { time: string; tex
     if (section.text.length < 100) continue;
 
     try {
-      const summary = await summarizeWithBart(section.text);
+      const summary = await summarizeWithBart(cleanTextForSummarization(section.text));
       sectionSummaries.push({ time: section.time, summary });
       console.log(`  ✅ Summarized section at ${section.time}`);
     } catch (error) {
@@ -233,7 +244,7 @@ async function generateShowNotes(fullText: string, sections: { time: string; tex
   // If we have very few sections, also summarize the full text
   if (sectionSummaries.length <= 2 && fullText.length > 500) {
     try {
-      const overallSummary = await summarizeWithBart(fullText.slice(0, 3000));
+      const overallSummary = await summarizeWithBart(cleanTextForSummarization(fullText.slice(0, 3000)));
       sectionSummaries.unshift({ time: '0:00', summary: overallSummary });
       console.log(`  ✅ Generated overall summary`);
     } catch (error) {
