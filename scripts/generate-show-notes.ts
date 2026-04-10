@@ -30,6 +30,7 @@ interface ShowNotesResult {
   dTag: string;
   title: string;
   showNotes: string;
+  shortSummary: string;
   success: boolean;
   error?: string;
 }
@@ -192,21 +193,26 @@ ${transcript}`;
 }
 
 /**
- * Generate show notes at ~20% of transcript length
+ * Generate show notes: long form (~20%) and short form (~100 words)
  */
-async function generateShowNotes(cleanText: string): Promise<string> {
+async function generateShowNotes(cleanText: string): Promise<{ showNotes: string; shortSummary: string }> {
   const wordCount = cleanText.split(/\s+/).length;
   const targetWords = Math.round(wordCount * 0.20);
 
   console.log(`📝 Generating show notes from ${cleanText.length} chars (~${wordCount} words), target ~${targetWords} words...`);
   console.log(`📄 Full cleaned transcript:\n${cleanText}\n---END TRANSCRIPT---`);
 
-  const summary = await summarizeWithGLM(cleanText, targetWords);
-  const summaryWords = summary.split(/\s+/).length;
-  console.log(`  ✅ Summary: ${summaryWords} words, ${summary.length} chars`);
-  console.log(`  📄 Summary:\n${summary}\n---END SUMMARY---`);
+  // Long summary for <description>
+  const showNotes = await summarizeWithGLM(cleanText, targetWords);
+  const longWords = showNotes.split(/\s+/).length;
+  console.log(`  ✅ Long summary: ${longWords} words, ${showNotes.length} chars`);
 
-  return summary;
+  // Short summary for <itunes:summary> (~100 words)
+  const shortSummary = await summarizeWithGLM(cleanText, 100);
+  const shortWords = shortSummary.split(/\s+/).length;
+  console.log(`  ✅ Short summary: ${shortWords} words, ${shortSummary.length} chars`);
+
+  return { showNotes, shortSummary };
 }
 
 /**
@@ -263,16 +269,17 @@ async function main() {
       console.log(`  📊 Extracted ${text.length} chars`);
 
       // Generate show notes
-      const showNotes = await generateShowNotes(text);
+      const { showNotes, shortSummary } = await generateShowNotes(text);
 
       results.push({
         dTag: transcript.dTag,
         title,
         showNotes,
+        shortSummary,
         success: true,
       });
 
-      console.log(`  ✅ Summary (${showNotes.split(/\s+/).length} words, ${showNotes.length} chars)`);
+      console.log(`  ✅ Long: ${showNotes.split(/\s+/).length} words | Short: ${shortSummary.split(/\s+/).length} words`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`  ❌ Failed: ${errorMessage}`);
@@ -280,6 +287,7 @@ async function main() {
         dTag: transcript.dTag,
         title,
         showNotes: '',
+        shortSummary: '',
         success: false,
         error: errorMessage,
       });

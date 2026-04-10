@@ -179,6 +179,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
     <item>
       <title>${escapeXml(episode.title)}</title>
       <description>${escapeXml(episode.description || '')}</description>
+      ${episode.shortSummary ? `<itunes:summary>${escapeXml(episode.shortSummary)}</itunes:summary>` : ''}
       <link>${escapeXml(audioUrl)}</link>
       <pubDate>${episode.publishDate.toUTCString()}</pubDate>
       <guid isPermaLink="false">${episode.authorPubkey}:${episode.identifier}</guid>
@@ -229,7 +230,8 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
 
   const title = tags.get('title')?.[0] || 'Untitled Episode';
-  const description = tags.get('description')?.[0] || tags.get('summary')?.[0];
+  const description = tags.get('description')?.[0];
+  const shortSummary = tags.get('summary')?.[0];
   const imageUrl = tags.get('image')?.[0];
 
   // Extract audio URL and type from audio tag
@@ -294,6 +296,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     id: event.id,
     title,
     description,
+    shortSummary,
     content,
     audioUrl,
     audioType,
@@ -479,13 +482,13 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
   }
 
   // Load show notes mapping
-  const showNotesMap = new Map<string, string>();
+  const showNotesMap = new Map<string, { showNotes: string; shortSummary: string }>();
   try {
     const snData = await fs.readFile('.show-notes-mapping.json', 'utf-8');
-    const snEntries = JSON.parse(snData) as Array<{ dTag: string; showNotes: string; success: boolean }>;
+    const snEntries = JSON.parse(snData) as Array<{ dTag: string; showNotes: string; shortSummary?: string; success: boolean }>;
     for (const entry of snEntries) {
       if (entry.success && entry.showNotes) {
-        showNotesMap.set(entry.dTag, entry.showNotes);
+        showNotesMap.set(entry.dTag, { showNotes: entry.showNotes, shortSummary: entry.shortSummary || '' });
       }
     }
     if (showNotesMap.size > 0) {
@@ -516,14 +519,23 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
     }
 
     // Add show notes if available
-    const showNotes = showNotesMap.get(dTag);
-    if (showNotes) {
+    const notes = showNotesMap.get(dTag);
+    if (notes) {
       // Update/add description tag (becomes <description> in RSS)
       const descIdx = newTags.findIndex(t => t[0] === 'description');
       if (descIdx === -1) {
-        newTags.push(['description', showNotes]);
+        newTags.push(['description', notes.showNotes]);
       } else {
-        newTags[descIdx] = ['description', showNotes];
+        newTags[descIdx] = ['description', notes.showNotes];
+      }
+      // Add short summary tag (becomes <itunes:summary> in RSS)
+      if (notes.shortSummary) {
+        const summaryIdx = newTags.findIndex(t => t[0] === 'summary');
+        if (summaryIdx === -1) {
+          newTags.push(['summary', notes.shortSummary]);
+        } else {
+          newTags[summaryIdx] = ['summary', notes.shortSummary];
+        }
       }
       modified = true;
       console.log(`  📝 Added show notes for ${dTag}`);
