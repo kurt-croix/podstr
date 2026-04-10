@@ -518,11 +518,6 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
     // Add show notes if available
     const showNotes = showNotesMap.get(dTag);
     if (showNotes) {
-      // Add to content field (becomes <content:encoded> in RSS)
-      if (!newContent || newContent.trim() === '') {
-        newContent = showNotes;
-        modified = true;
-      }
       // Update/add description tag (becomes <description> in RSS)
       const descIdx = newTags.findIndex(t => t[0] === 'description');
       if (descIdx === -1) {

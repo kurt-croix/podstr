@@ -4,7 +4,7 @@
  * This script:
  * - Reads transcript mapping from transcription step
  * - Parses SRT files to extract text with speaker labels
- * - Calls xAI (Grok) API to generate summaries at multiple lengths
+ * - Calls z.ai API to generate a summary at ~20% of transcript length
  * - Saves show notes to .show-notes-mapping.json
  */
 
@@ -30,7 +30,6 @@ interface ShowNotesResult {
   dTag: string;
   title: string;
   showNotes: string;
-  summaries: Record<string, { text: string; wordCount: number; charCount: number }>;
   success: boolean;
   error?: string;
 }
@@ -142,7 +141,7 @@ function extractCleanText(entries: SrtEntry[]): { text: string; sections: { time
 }
 
 /**
- * Call xAI (Grok) chat completions API
+ * Call z.ai chat completions API
  */
 async function summarizeWithGLM(transcript: string, targetWordCount: number): Promise<string> {
   const apiKey = process.env.ZHIPU_API_KEY;
@@ -193,43 +192,21 @@ ${transcript}`;
 }
 
 /**
- * Generate show notes at multiple lengths for comparison
+ * Generate show notes at ~20% of transcript length
  */
-async function generateShowNotes(cleanText: string, sections: { time: string; text: string }[]): Promise<{ best: string; summaries: Record<string, { text: string; wordCount: number; charCount: number }> }> {
+async function generateShowNotes(cleanText: string): Promise<string> {
   const wordCount = cleanText.split(/\s+/).length;
+  const targetWords = Math.round(wordCount * 0.20);
 
-  console.log(`📝 Generating show notes from ${cleanText.length} chars (~${wordCount} words)...`);
+  console.log(`📝 Generating show notes from ${cleanText.length} chars (~${wordCount} words), target ~${targetWords} words...`);
   console.log(`📄 Full cleaned transcript:\n${cleanText}\n---END TRANSCRIPT---`);
 
-  const summaryConfigs: Record<string, { targetWords: number; label: string }> = {
-    '500words': { targetWords: 500, label: '500 words' },
-    '1000words': { targetWords: 1000, label: '1000 words' },
-    '1500words': { targetWords: 1500, label: '1500 words' },
-    '10pct': { targetWords: Math.round(wordCount * 0.10), label: '10%' },
-    '20pct': { targetWords: Math.round(wordCount * 0.20), label: '20%' },
-    '30pct': { targetWords: Math.round(wordCount * 0.30), label: '30%' },
-  };
+  const summary = await summarizeWithGLM(cleanText, targetWords);
+  const summaryWords = summary.split(/\s+/).length;
+  console.log(`  ✅ Summary: ${summaryWords} words, ${summary.length} chars`);
+  console.log(`  📄 Summary:\n${summary}\n---END SUMMARY---`);
 
-  const summaries: Record<string, { text: string; wordCount: number; charCount: number }> = {};
-
-  for (const [key, config] of Object.entries(summaryConfigs)) {
-    console.log(`\n  📊 Generating ${config.label} summary (~${config.targetWords} words)...`);
-    try {
-      const summary = await summarizeWithGLM(cleanText, config.targetWords);
-      const summaryWords = summary.split(/\s+/).length;
-      summaries[key] = { text: summary, wordCount: summaryWords, charCount: summary.length };
-      console.log(`  ✅ ${config.label}: ${summaryWords} words, ${summary.length} chars`);
-      console.log(`  📄 ${config.label} summary:\n${summary}\n---END ${config.label.toUpperCase()}---`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`  ⚠️  ${config.label} failed: ${msg}`);
-      summaries[key] = { text: `[FAILED: ${msg}]`, wordCount: 0, charCount: 0 };
-    }
-  }
-
-  // Use 20% summary as default "best" for RSS feed
-  const best = summaries['20pct']?.text || summaries['500words']?.text || '';
-  return { best, summaries };
+  return summary;
 }
 
 /**
@@ -282,31 +259,20 @@ async function main() {
       }
 
       // Extract clean text (no speaker labels)
-      const { text, sections } = extractCleanText(entries);
-      console.log(`  📊 Extracted ${sections.length} sections from ${text.length} chars`);
+      const { text } = extractCleanText(entries);
+      console.log(`  📊 Extracted ${text.length} chars`);
 
       // Generate show notes
-      const { best, summaries } = await generateShowNotes(text, sections);
-
-      // Check if all summaries failed
-      const allFailed = Object.values(summaries).every(s => s.text.startsWith('[FAILED:'));
-      if (allFailed) {
-        throw new Error('All summarization attempts failed');
-      }
+      const showNotes = await generateShowNotes(text);
 
       results.push({
         dTag: transcript.dTag,
         title,
-        showNotes: best,
-        summaries,
+        showNotes,
         success: true,
       });
 
-      console.log(`  ✅ Best summary (${best.split(/\s+/).length} words, ${best.length} chars)`);
-      console.log(`\n  📊 Summary comparison:`);
-      for (const [key, s] of Object.entries(summaries)) {
-        console.log(`    ${key}: ${s.wordCount} words, ${s.charCount} chars${s.text.startsWith('[FAILED:') ? ' ❌' : ''}`);
-      }
+      console.log(`  ✅ Summary (${showNotes.split(/\s+/).length} words, ${showNotes.length} chars)`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`  ❌ Failed: ${errorMessage}`);
@@ -314,7 +280,6 @@ async function main() {
         dTag: transcript.dTag,
         title,
         showNotes: '',
-        summaries: {},
         success: false,
         error: errorMessage,
       });
