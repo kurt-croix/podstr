@@ -4,7 +4,8 @@
  * This script:
  * - Reads transcript mapping from transcription step
  * - Parses SRT files to extract text with speaker labels
- * - Calls HF Inference API to generate summary, topics, and timestamps
+ * - Calls HF Inference API (BART-large-CNN) with chunked summarization
+ * - Generates multiple summaries at different lengths for comparison
  * - Saves show notes to .show-notes-mapping.json
  */
 
@@ -46,6 +47,9 @@ interface SrtEntry {
 const TRANSCRIPT_MAPPING_PATH = path.resolve('.transcript-mapping.json');
 const SHOW_NOTES_MAPPING_PATH = path.resolve('.show-notes-mapping.json');
 
+// BART-large-CNN max input is ~1024 tokens (~3000 chars for English)
+const BART_MAX_INPUT_CHARS = 3000;
+
 /**
  * Parse SRT file content into structured entries
  */
@@ -66,9 +70,7 @@ function parseSrt(content: string): SrtEntry[] {
     if (!timeMatch) continue;
 
     const textLines = lines.slice(2).join(' ');
-    // Check for speaker label like [SPEAKER_00]: or <v Speaker 1>
-    const speakerMatch = textLines.match(/\[SPEAKER_\d+\]|<v\s+([^>]+)>/);
-    const speaker = speakerMatch ? (speakerMatch[1] || speakerMatch[0]).trim() : undefined;
+    // Strip speaker labels like [SPEAKER_00]: and <v Speaker 1>
     const text = textLines.replace(/\[SPEAKER_\d+\]:?\s*/g, '').replace(/<v\s+[^>]+>:?\s*/g, '').trim();
 
     if (!text) continue;
@@ -77,7 +79,6 @@ function parseSrt(content: string): SrtEntry[] {
       index,
       startTime: timeMatch[1],
       endTime: timeMatch[2],
-      speaker,
       text,
     });
   }
@@ -112,9 +113,9 @@ function toSeconds(srtTime: string): number {
 }
 
 /**
- * Extract plain text from SRT entries with timestamps for section breaks
+ * Extract plain text from SRT entries (no speaker labels)
  */
-function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; sections: { time: string; text: string }[] } {
+function extractCleanText(entries: SrtEntry[]): { text: string; sections: { time: string; text: string }[] } {
   const sections: { time: string; text: string }[] = [];
   let currentSection = '';
   let sectionStart = '';
@@ -122,16 +123,15 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
 
   for (const entry of entries) {
     const seconds = toSeconds(entry.startTime);
-    const label = entry.speaker ? `${entry.speaker} ` : '';
 
     if (!sectionStart || seconds - toSeconds(sectionStart) >= SECTION_BREAK_SECONDS) {
       if (currentSection.trim()) {
         sections.push({ time: formatTimestamp(sectionStart), text: currentSection.trim() });
       }
       sectionStart = entry.startTime;
-      currentSection = `${label}${entry.text} `;
+      currentSection = `${entry.text} `;
     } else {
-      currentSection += `${label}${entry.text} `;
+      currentSection += `${entry.text} `;
     }
   }
 
@@ -139,23 +139,36 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
     sections.push({ time: formatTimestamp(sectionStart), text: currentSection.trim() });
   }
 
-  const fullText = entries.map(e => {
-    const label = e.speaker ? `[${e.speaker}] ` : '';
-    return `${label}${e.text}`;
-  }).join(' ');
+  // Clean text: join all entry text, collapse whitespace
+  const text = entries.map(e => e.text).join(' ').replace(/\s+/g, ' ').trim();
 
-  return { text: fullText, sections };
+  return { text, sections };
 }
 
 /**
- * Strip speaker labels and other diarization artifacts from text
+ * Split text into chunks that fit within BART's input limit
  */
-function cleanTextForSummarization(text: string): string {
-  return text
-    .replace(/\[SPEAKER_\d+\]:?\s*/g, '')
-    .replace(/<v\s+[^>]+>:?\s*/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+function chunkText(text: string, maxChars: number = BART_MAX_INPUT_CHARS): string[] {
+  if (text.length <= maxChars) return [text];
+
+  const chunks: string[] = [];
+  // Split on sentence boundaries to avoid cutting mid-sentence
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+
+  let currentChunk = '';
+  for (const sentence of sentences) {
+    if (currentChunk.length + sentence.length > maxChars && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = sentence;
+    } else {
+      currentChunk += sentence;
+    }
+  }
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
 }
 
 /**
@@ -167,6 +180,9 @@ async function summarizeWithBart(text: string, maxLength: number, minLength: num
 
   const url = 'https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn';
 
+  // Ensure input doesn't exceed BART's limit
+  const inputText = text.length > BART_MAX_INPUT_CHARS ? text.slice(0, BART_MAX_INPUT_CHARS) : text;
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const response = await fetch(url, {
       method: 'POST',
@@ -175,7 +191,7 @@ async function summarizeWithBart(text: string, maxLength: number, minLength: num
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: text,
+        inputs: inputText,
         parameters: {
           max_length: maxLength,
           min_length: minLength,
@@ -214,41 +230,71 @@ async function summarizeWithBart(text: string, maxLength: number, minLength: num
 }
 
 /**
+ * Chunked summarization: split text, summarize each chunk, combine results
+ */
+async function chunkedSummarize(text: string, perChunkMaxTokens: number, perChunkMinTokens: number): Promise<string> {
+  const chunks = chunkText(text);
+  console.log(`  📦 Split into ${chunks.length} chunks (per-chunk: max ${perChunkMaxTokens}, min ${perChunkMinTokens} tokens)`);
+
+  const chunkSummaries: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    console.log(`  📦 Summarizing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`);
+    const summary = await summarizeWithBart(chunks[i], perChunkMaxTokens, perChunkMinTokens);
+    chunkSummaries.push(summary);
+  }
+
+  const combined = chunkSummaries.join(' ');
+
+  // If combined result fits in BART's input, do a final coherence pass
+  if (combined.length <= BART_MAX_INPUT_CHARS) {
+    console.log(`  🔄 Final coherence pass (${combined.length} chars)...`);
+    const final = await summarizeWithBart(combined, perChunkMaxTokens, perChunkMinTokens);
+    return final;
+  }
+
+  // Otherwise just return the concatenated chunk summaries
+  console.log(`  📄 Combined ${chunkSummaries.length} chunk summaries (${combined.length} chars)`);
+  return combined;
+}
+
+/**
  * Generate show notes from transcript text using BART-large-CNN summarization
  * Produces multiple summaries at different lengths for comparison
  */
-async function generateShowNotes(fullText: string, sections: { time: string; text: string }[]): Promise<{ best: string; summaries: Record<string, { text: string; wordCount: number; charCount: number }> }> {
-  const cleanFullText = cleanTextForSummarization(fullText);
-  const wordCount = cleanFullText.split(/\s+/).length;
+async function generateShowNotes(cleanText: string, sections: { time: string; text: string }[]): Promise<{ best: string; summaries: Record<string, { text: string; wordCount: number; charCount: number }> }> {
+  const wordCount = cleanText.split(/\s+/).length;
   // Rough token estimate: ~1.3 tokens per word for English
   const estimatedInputTokens = Math.round(wordCount * 1.3);
+  const numChunks = Math.ceil(cleanText.length / BART_MAX_INPUT_CHARS);
 
-  console.log(`📝 Generating show notes from ${cleanFullText.length} chars (~${wordCount} words, ~${estimatedInputTokens} tokens)...`);
+  console.log(`📝 Generating show notes from ${cleanText.length} chars (~${wordCount} words, ~${estimatedInputTokens} tokens, ~${numChunks} chunks)...`);
 
-  // Dump cleaned text for debugging
-  const debugPath = path.resolve('.show-notes-input.txt');
-  await fs.writeFile(debugPath, cleanFullText);
-  console.log(`💾 Cleaned transcript dumped to: ${debugPath}`);
+  // Log full cleaned text
+  console.log(`📄 Full cleaned transcript:\n${cleanText}\n---END TRANSCRIPT---`);
 
   // Define summary configurations
-  const summaryConfigs: Record<string, { maxTokens: number; minTokens: number; label: string }> = {};
+  // For chunked summarization, per-chunk max = target_total_tokens / num_chunks
+  const summaryConfigs: Record<string, { perChunkMax: number; perChunkMin: number; label: string }> = {};
 
-  // Word-count based: ~1.3 tokens per word
-  summaryConfigs['500words'] = { maxTokens: 700, minTokens: 400, label: '500 words' };
-  summaryConfigs['1000words'] = { maxTokens: 1400, minTokens: 800, label: '1000 words' };
-  summaryConfigs['1500words'] = { maxTokens: 2000, minTokens: 1200, label: '1500 words' };
+  // Word-count based targets (~1.3 tokens per word)
+  summaryConfigs['500words'] = { perChunkMax: Math.round(700 / numChunks), perChunkMin: Math.round(400 / numChunks), label: '500 words' };
+  summaryConfigs['1000words'] = { perChunkMax: Math.round(1400 / numChunks), perChunkMin: Math.round(800 / numChunks), label: '1000 words' };
+  summaryConfigs['1500words'] = { perChunkMax: Math.round(2000 / numChunks), perChunkMin: Math.round(1200 / numChunks), label: '1500 words' };
 
   // Percentage based: output tokens = estimated input tokens * percentage
-  summaryConfigs['10pct'] = { maxTokens: Math.round(estimatedInputTokens * 0.10), minTokens: Math.round(estimatedInputTokens * 0.05), label: '10%' };
-  summaryConfigs['20pct'] = { maxTokens: Math.round(estimatedInputTokens * 0.20), minTokens: Math.round(estimatedInputTokens * 0.10), label: '20%' };
-  summaryConfigs['30pct'] = { maxTokens: Math.round(estimatedInputTokens * 0.30), minTokens: Math.round(estimatedInputTokens * 0.15), label: '30%' };
+  summaryConfigs['10pct'] = { perChunkMax: Math.round(estimatedInputTokens * 0.10 / numChunks), perChunkMin: Math.round(estimatedInputTokens * 0.05 / numChunks), label: '10%' };
+  summaryConfigs['20pct'] = { perChunkMax: Math.round(estimatedInputTokens * 0.20 / numChunks), perChunkMin: Math.round(estimatedInputTokens * 0.10 / numChunks), label: '20%' };
+  summaryConfigs['30pct'] = { perChunkMax: Math.round(estimatedInputTokens * 0.30 / numChunks), perChunkMin: Math.round(estimatedInputTokens * 0.15 / numChunks), label: '30%' };
 
   const summaries: Record<string, { text: string; wordCount: number; charCount: number }> = {};
 
   for (const [key, config] of Object.entries(summaryConfigs)) {
-    console.log(`\n  📊 Generating ${config.label} summary (max_tokens: ${config.maxTokens}, min_tokens: ${config.minTokens})...`);
+    // Ensure minimums are sane
+    const maxTokens = Math.max(config.perChunkMax, 30);
+    const minTokens = Math.max(config.perChunkMin, 10);
+    console.log(`\n  📊 Generating ${config.label} summary (per-chunk: max ${maxTokens}, min ${minTokens} tokens)...`);
     try {
-      const summary = await summarizeWithBart(cleanFullText, config.maxTokens, config.minTokens);
+      const summary = await chunkedSummarize(cleanText, maxTokens, minTokens);
       const summaryWords = summary.split(/\s+/).length;
       summaries[key] = { text: summary, wordCount: summaryWords, charCount: summary.length };
       console.log(`  ✅ ${config.label}: ${summaryWords} words, ${summary.length} chars`);
@@ -261,7 +307,7 @@ async function generateShowNotes(fullText: string, sections: { time: string; tex
   }
 
   // Use 20% summary as default "best" for RSS feed
-  const best = summaries['20pct']?.text || summaries['500words']?.text || cleanFullText.slice(0, 500) + '...';
+  const best = summaries['20pct']?.text || summaries['500words']?.text || '';
   return { best, summaries };
 }
 
@@ -298,6 +344,7 @@ async function main() {
   console.log(`📝 Generating show notes for ${toProcess.length} episode(s)`);
 
   const results: ShowNotesResult[] = [];
+  let hadFailure = false;
 
   for (const transcript of toProcess) {
     const title = transcript.event?.tags.find(t => t[0] === 'title')?.[1] || 'Unknown Episode';
@@ -313,12 +360,18 @@ async function main() {
         throw new Error('No SRT entries found');
       }
 
-      // Extract text and timestamps
-      const { text, sections } = extractTextWithTimestamps(entries);
+      // Extract clean text (no speaker labels)
+      const { text, sections } = extractCleanText(entries);
       console.log(`  📊 Extracted ${sections.length} sections from ${text.length} chars`);
 
       // Generate show notes
       const { best, summaries } = await generateShowNotes(text, sections);
+
+      // Check if all summaries failed
+      const allFailed = Object.values(summaries).every(s => s.text.startsWith('[FAILED:'));
+      if (allFailed) {
+        throw new Error('All summarization attempts failed');
+      }
 
       results.push({
         dTag: transcript.dTag,
@@ -331,7 +384,7 @@ async function main() {
       console.log(`  ✅ Best summary (${best.split(/\s+/).length} words, ${best.length} chars)`);
       console.log(`\n  📊 Summary comparison:`);
       for (const [key, s] of Object.entries(summaries)) {
-        console.log(`    ${key}: ${s.wordCount} words, ${s.charCount} chars`);
+        console.log(`    ${key}: ${s.wordCount} words, ${s.charCount} chars${s.text.startsWith('[FAILED:') ? ' ❌' : ''}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -343,6 +396,7 @@ async function main() {
         success: false,
         error: errorMessage,
       });
+      hadFailure = true;
     }
   }
 
@@ -355,8 +409,8 @@ async function main() {
   const failCount = results.filter(r => !r.success).length;
   console.log(`\n📊 Summary: ${successCount} succeeded, ${failCount} failed`);
 
-  if (failCount > 0) {
-    console.log('\n⚠️  Some show notes generation failed. Check logs.');
+  if (hadFailure) {
+    console.log('\n❌ Show notes generation failed.');
     process.exit(1);
   }
 
