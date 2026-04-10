@@ -44,7 +44,7 @@ interface SrtEntry {
 
 const TRANSCRIPT_MAPPING_PATH = path.resolve('.transcript-mapping.json');
 const SHOW_NOTES_MAPPING_PATH = path.resolve('.show-notes-mapping.json');
-const ZHIPU_API_URL = 'https://api.z.ai/api/paas/v4/chat/completions';
+const ZHIPU_API_URL = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
 const ZHIPU_MODEL = 'glm-5.1';
 
 /**
