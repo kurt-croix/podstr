@@ -457,6 +457,79 @@ async function loadEpisodesFromCache(): Promise<NostrEvent[] | null> {
 }
 
 /**
+ * Overlay transcript URLs and show notes from pipeline mapping files onto episodes
+ * This ensures the RSS feed includes data that was just published in the same run
+ */
+async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]> {
+  // Load transcript mapping
+  const transcriptMap = new Map<string, string>();
+  try {
+    const tmData = await fs.readFile('.transcript-mapping.json', 'utf-8');
+    const tmEntries = JSON.parse(tmData) as Array<{ dTag: string; transcriptUrl: string; success: boolean }>;
+    for (const entry of tmEntries) {
+      if (entry.success && entry.transcriptUrl) {
+        transcriptMap.set(entry.dTag, entry.transcriptUrl);
+      }
+    }
+    if (transcriptMap.size > 0) {
+      console.log(`📋 Loaded ${transcriptMap.size} transcript URL(s) from pipeline mapping`);
+    }
+  } catch {
+    // No mapping file, that's fine
+  }
+
+  // Load show notes mapping
+  const showNotesMap = new Map<string, string>();
+  try {
+    const snData = await fs.readFile('.show-notes-mapping.json', 'utf-8');
+    const snEntries = JSON.parse(snData) as Array<{ dTag: string; showNotes: string; success: boolean }>;
+    for (const entry of snEntries) {
+      if (entry.success && entry.showNotes) {
+        showNotesMap.set(entry.dTag, entry.showNotes);
+      }
+    }
+    if (showNotesMap.size > 0) {
+      console.log(`📋 Loaded ${showNotesMap.size} show note(s) from pipeline mapping`);
+    }
+  } catch {
+    // No mapping file, that's fine
+  }
+
+  if (transcriptMap.size === 0 && showNotesMap.size === 0) {
+    return episodes;
+  }
+
+  return episodes.map(episode => {
+    const dTag = episode.tags.find(t => t[0] === 'd')?.[1];
+    if (!dTag) return episode;
+
+    let modified = false;
+    const newTags = [...episode.tags];
+    let newContent = episode.content;
+
+    // Add transcript URL if missing
+    const transcriptUrl = transcriptMap.get(dTag);
+    if (transcriptUrl && !newTags.some(t => t[0] === 'transcript')) {
+      newTags.push(['transcript', transcriptUrl]);
+      modified = true;
+      console.log(`  📝 Added transcript URL for ${dTag}`);
+    }
+
+    // Add show notes if available
+    const showNotes = showNotesMap.get(dTag);
+    if (showNotes && (!newContent || newContent.trim() === '')) {
+      newContent = showNotes;
+      modified = true;
+      console.log(`  📝 Added show notes for ${dTag}`);
+    }
+
+    if (!modified) return episode;
+
+    return { ...episode, tags: newTags, content: newContent };
+  });
+}
+
+/**
  * Fetch podcast episodes from multiple Nostr relays
  */
 async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
@@ -654,10 +727,14 @@ async function buildRSS() {
       // Try to load episodes from cache first to avoid duplicate fetches
       const cachedEpisodes = await loadEpisodesFromCache();
       if (cachedEpisodes && cachedEpisodes.length > 0) {
-        episodes = cachedEpisodes.map(eventToPodcastEpisode);
+        // Overlay transcript URLs and show notes from pipeline mapping files
+        const overlaidEpisodes = await overlayPipelineData(cachedEpisodes);
+        episodes = overlaidEpisodes.map(eventToPodcastEpisode);
       } else {
         // Fetch episodes from multiple relays
-        episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
+        const fetchedEpisodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
+        const overlaidEpisodes = await overlayPipelineData(fetchedEpisodes);
+        episodes = overlaidEpisodes.map(eventToPodcastEpisode);
       }
 
       // Fetch trailers from multiple relays

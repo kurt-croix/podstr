@@ -96,12 +96,19 @@ jobs:
           TEST_MODE: 'false'
         if: hashFiles('.episodes-to-transcribe.json') != ''
 
-      - name: Update episodes with transcript URLs
+      - name: Update episodes with transcript URLs and show notes
         run: npx -y tsx scripts/update-episodes-with-transcripts.ts
         env:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
           NBUNKSEC: ${{ secrets.NBUNKSEC }}
           RELAY_URL: "wss://nos.lol"
+        if: hashFiles('.transcript-mapping.json') != ''
+
+      - name: Generate show notes
+        run: npx -y tsx scripts/generate-show-notes.ts
+        timeout-minutes: 30
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Build RSS feed and React app
