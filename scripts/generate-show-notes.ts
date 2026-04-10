@@ -4,8 +4,7 @@
  * This script:
  * - Reads transcript mapping from transcription step
  * - Parses SRT files to extract text with speaker labels
- * - Calls HF Inference API (BART-large-CNN) with chunked summarization
- * - Generates multiple summaries at different lengths for comparison
+ * - Calls xAI (Grok) API to generate summaries at multiple lengths
  * - Saves show notes to .show-notes-mapping.json
  */
 
@@ -40,15 +39,13 @@ interface SrtEntry {
   index: number;
   startTime: string;
   endTime: string;
-  speaker?: string;
   text: string;
 }
 
 const TRANSCRIPT_MAPPING_PATH = path.resolve('.transcript-mapping.json');
 const SHOW_NOTES_MAPPING_PATH = path.resolve('.show-notes-mapping.json');
-
-// BART-large-CNN max input is ~1024 tokens (~3000 chars for English)
-const BART_MAX_INPUT_CHARS = 3000;
+const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
+const XAI_MODEL = 'grok-3-mini';
 
 /**
  * Parse SRT file content into structured entries
@@ -87,6 +84,17 @@ function parseSrt(content: string): SrtEntry[] {
 }
 
 /**
+ * Convert SRT timestamp to seconds
+ */
+function toSeconds(srtTime: string): number {
+  const parts = srtTime.split(':');
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  const seconds = parseFloat(parts[2].replace(',', '.'));
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
  * Convert SRT timestamp to readable format
  */
 function formatTimestamp(srtTime: string): string {
@@ -102,18 +110,7 @@ function formatTimestamp(srtTime: string): string {
 }
 
 /**
- * Convert SRT timestamp to seconds
- */
-function toSeconds(srtTime: string): number {
-  const parts = srtTime.split(':');
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
-  const seconds = parseFloat(parts[2].replace(',', '.'));
-  return hours * 3600 + minutes * 60 + seconds;
-}
-
-/**
- * Extract plain text from SRT entries (no speaker labels)
+ * Extract plain text from SRT entries and break into timestamped sections
  */
 function extractCleanText(entries: SrtEntry[]): { text: string; sections: { time: string; text: string }[] } {
   const sections: { time: string; text: string }[] = [];
@@ -139,162 +136,84 @@ function extractCleanText(entries: SrtEntry[]): { text: string; sections: { time
     sections.push({ time: formatTimestamp(sectionStart), text: currentSection.trim() });
   }
 
-  // Clean text: join all entry text, collapse whitespace
   const text = entries.map(e => e.text).join(' ').replace(/\s+/g, ' ').trim();
 
   return { text, sections };
 }
 
 /**
- * Split text into chunks that fit within BART's input limit
+ * Call xAI (Grok) chat completions API
  */
-function chunkText(text: string, maxChars: number = BART_MAX_INPUT_CHARS): string[] {
-  if (text.length <= maxChars) return [text];
+async function summarizeWithGrok(transcript: string, targetWordCount: number): Promise<string> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) throw new Error('XAI_API_KEY is required');
 
-  const chunks: string[] = [];
-  // Split on sentence boundaries to avoid cutting mid-sentence
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  const systemPrompt = `You are a professional podcast show notes writer. You write clear, informative summaries of government meeting recordings. Focus on key decisions, discussions, votes, and action items. Write in a neutral, informative tone. Do not invent information that is not in the transcript.`;
 
-  let currentChunk = '';
-  for (const sentence of sentences) {
-    if (currentChunk.length + sentence.length > maxChars && currentChunk.length > 0) {
-      chunks.push(currentChunk.trim());
-      currentChunk = sentence;
-    } else {
-      currentChunk += sentence;
-    }
+  const userPrompt = `Summarize the following government meeting transcript in approximately ${targetWordCount} words. Cover the main topics discussed, key decisions made, and any notable points raised.
+
+TRANSCRIPT:
+${transcript}`;
+
+  const response = await fetch(XAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: XAI_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`xAI API error (${response.status}): ${errorText}`);
   }
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
+
+  const result = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+    usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  };
+
+  if (result.choices?.[0]?.message?.content) {
+    const usage = result.usage;
+    console.log(`    tokens: ${usage.prompt_tokens} in / ${usage.completion_tokens} out / ${usage.total_tokens} total`);
+    return result.choices[0].message.content;
   }
 
-  return chunks;
+  throw new Error('Unexpected xAI API response format');
 }
 
 /**
- * Call HF Inference API with facebook/bart-large-cnn for summarization
- */
-async function summarizeWithBart(text: string, maxLength: number, minLength: number, maxRetries: number = 3): Promise<string> {
-  const hfToken = process.env.HF_TOKEN;
-  if (!hfToken) throw new Error('HF_TOKEN is required');
-
-  const url = 'https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn';
-
-  // Ensure input doesn't exceed BART's limit
-  const inputText = text.length > BART_MAX_INPUT_CHARS ? text.slice(0, BART_MAX_INPUT_CHARS) : text;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: inputText,
-        parameters: {
-          max_length: maxLength,
-          min_length: minLength,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      // Model is loading, retry after waiting
-      if (response.status === 503) {
-        let waitTime = 30;
-        try {
-          const errorJson = JSON.parse(errorText);
-          waitTime = errorJson.estimated_time || 30;
-        } catch { /* use default */ }
-        console.log(`  ⏳ Model loading, waiting ${Math.min(waitTime, 60)}s...`);
-        await new Promise(resolve => setTimeout(resolve, Math.min(waitTime * 1000, 60000)));
-        continue;
-      }
-
-      throw new Error(`HF API error (${response.status}): ${errorText}`);
-    }
-
-    const result = await response.json() as Array<{ summary_text: string }>;
-
-    if (Array.isArray(result) && result[0]?.summary_text) {
-      return result[0].summary_text;
-    }
-
-    throw new Error('Unexpected HF API response format');
-  }
-
-  throw new Error('Max retries exceeded for HF API');
-}
-
-/**
- * Chunked summarization: split text, summarize each chunk, combine results
- */
-async function chunkedSummarize(text: string, perChunkMaxTokens: number, perChunkMinTokens: number): Promise<string> {
-  const chunks = chunkText(text);
-  console.log(`  📦 Split into ${chunks.length} chunks (per-chunk: max ${perChunkMaxTokens}, min ${perChunkMinTokens} tokens)`);
-
-  const chunkSummaries: string[] = [];
-  for (let i = 0; i < chunks.length; i++) {
-    console.log(`  📦 Summarizing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`);
-    const summary = await summarizeWithBart(chunks[i], perChunkMaxTokens, perChunkMinTokens);
-    chunkSummaries.push(summary);
-  }
-
-  const combined = chunkSummaries.join(' ');
-
-  // If combined result fits in BART's input, do a final coherence pass
-  if (combined.length <= BART_MAX_INPUT_CHARS) {
-    console.log(`  🔄 Final coherence pass (${combined.length} chars)...`);
-    const final = await summarizeWithBart(combined, perChunkMaxTokens, perChunkMinTokens);
-    return final;
-  }
-
-  // Otherwise just return the concatenated chunk summaries
-  console.log(`  📄 Combined ${chunkSummaries.length} chunk summaries (${combined.length} chars)`);
-  return combined;
-}
-
-/**
- * Generate show notes from transcript text using BART-large-CNN summarization
- * Produces multiple summaries at different lengths for comparison
+ * Generate show notes at multiple lengths for comparison
  */
 async function generateShowNotes(cleanText: string, sections: { time: string; text: string }[]): Promise<{ best: string; summaries: Record<string, { text: string; wordCount: number; charCount: number }> }> {
   const wordCount = cleanText.split(/\s+/).length;
-  // Rough token estimate: ~1.3 tokens per word for English
-  const estimatedInputTokens = Math.round(wordCount * 1.3);
-  const numChunks = Math.ceil(cleanText.length / BART_MAX_INPUT_CHARS);
 
-  console.log(`📝 Generating show notes from ${cleanText.length} chars (~${wordCount} words, ~${estimatedInputTokens} tokens, ~${numChunks} chunks)...`);
-
-  // Log full cleaned text
+  console.log(`📝 Generating show notes from ${cleanText.length} chars (~${wordCount} words)...`);
   console.log(`📄 Full cleaned transcript:\n${cleanText}\n---END TRANSCRIPT---`);
 
-  // Define summary configurations
-  // For chunked summarization, per-chunk max = target_total_tokens / num_chunks
-  const summaryConfigs: Record<string, { perChunkMax: number; perChunkMin: number; label: string }> = {};
-
-  // Word-count based targets (~1.3 tokens per word)
-  summaryConfigs['500words'] = { perChunkMax: Math.round(700 / numChunks), perChunkMin: Math.round(400 / numChunks), label: '500 words' };
-  summaryConfigs['1000words'] = { perChunkMax: Math.round(1400 / numChunks), perChunkMin: Math.round(800 / numChunks), label: '1000 words' };
-  summaryConfigs['1500words'] = { perChunkMax: Math.round(2000 / numChunks), perChunkMin: Math.round(1200 / numChunks), label: '1500 words' };
-
-  // Percentage based: output tokens = estimated input tokens * percentage
-  summaryConfigs['10pct'] = { perChunkMax: Math.round(estimatedInputTokens * 0.10 / numChunks), perChunkMin: Math.round(estimatedInputTokens * 0.05 / numChunks), label: '10%' };
-  summaryConfigs['20pct'] = { perChunkMax: Math.round(estimatedInputTokens * 0.20 / numChunks), perChunkMin: Math.round(estimatedInputTokens * 0.10 / numChunks), label: '20%' };
-  summaryConfigs['30pct'] = { perChunkMax: Math.round(estimatedInputTokens * 0.30 / numChunks), perChunkMin: Math.round(estimatedInputTokens * 0.15 / numChunks), label: '30%' };
+  const summaryConfigs: Record<string, { targetWords: number; label: string }> = {
+    '500words': { targetWords: 500, label: '500 words' },
+    '1000words': { targetWords: 1000, label: '1000 words' },
+    '1500words': { targetWords: 1500, label: '1500 words' },
+    '10pct': { targetWords: Math.round(wordCount * 0.10), label: '10%' },
+    '20pct': { targetWords: Math.round(wordCount * 0.20), label: '20%' },
+    '30pct': { targetWords: Math.round(wordCount * 0.30), label: '30%' },
+  };
 
   const summaries: Record<string, { text: string; wordCount: number; charCount: number }> = {};
 
   for (const [key, config] of Object.entries(summaryConfigs)) {
-    // Ensure minimums are sane
-    const maxTokens = Math.max(config.perChunkMax, 30);
-    const minTokens = Math.max(config.perChunkMin, 10);
-    console.log(`\n  📊 Generating ${config.label} summary (per-chunk: max ${maxTokens}, min ${minTokens} tokens)...`);
+    console.log(`\n  📊 Generating ${config.label} summary (~${config.targetWords} words)...`);
     try {
-      const summary = await chunkedSummarize(cleanText, maxTokens, minTokens);
+      const summary = await summarizeWithGrok(cleanText, config.targetWords);
       const summaryWords = summary.split(/\s+/).length;
       summaries[key] = { text: summary, wordCount: summaryWords, charCount: summary.length };
       console.log(`  ✅ ${config.label}: ${summaryWords} words, ${summary.length} chars`);
@@ -317,8 +236,8 @@ async function generateShowNotes(cleanText: string, sections: { time: string; te
 async function main() {
   console.log('📝 Starting show notes generation...');
 
-  if (!process.env.HF_TOKEN) {
-    console.error('❌ HF_TOKEN environment variable is required');
+  if (!process.env.XAI_API_KEY) {
+    console.error('❌ XAI_API_KEY environment variable is required');
     process.exit(1);
   }
 
