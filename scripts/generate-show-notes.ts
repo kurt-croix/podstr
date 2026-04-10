@@ -147,13 +147,15 @@ function extractTextWithTimestamps(entries: SrtEntry[]): { text: string; section
 }
 
 /**
- * Call HF Inference API for text generation
+ * Call HF Inference Providers API (OpenAI-compatible chat completions)
  */
-async function queryHuggingFace(prompt: string, model: string): Promise<string> {
+async function queryHuggingFace(userPrompt: string): Promise<string> {
   const hfToken = process.env.HF_TOKEN;
   if (!hfToken) throw new Error('HF_TOKEN is required');
 
-  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  // Use HF's hosted inference with OpenAI-compatible chat completions endpoint
+  const url = 'https://router.huggingface.co/hf-inference/v3/openai/chat/completions';
+  const model = 'mistralai/Mistral-7B-Instruct-v0.3';
 
   const response = await fetch(url, {
     method: 'POST',
@@ -162,12 +164,10 @@ async function queryHuggingFace(prompt: string, model: string): Promise<string> 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 1024,
-        temperature: 0.3,
-        do_sample: false,
-      },
+      model,
+      messages: [{ role: 'user', content: userPrompt }],
+      max_tokens: 1024,
+      temperature: 0.3,
     }),
   });
 
@@ -176,18 +176,12 @@ async function queryHuggingFace(prompt: string, model: string): Promise<string> 
     throw new Error(`HF API error (${response.status}): ${errorText}`);
   }
 
-  const result = await response.json() as Array<{ generated_text: string }>;
+  const result = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
 
-  if (Array.isArray(result) && result.length > 0 && result[0].generated_text) {
-    // Extract only the new text after the prompt
-    const generated = result[0].generated_text;
-    const promptEnd = generated.indexOf('[/INST]');
-    if (promptEnd !== -1) {
-      return generated.slice(promptEnd + 7).trim();
-    }
-    // For models that return just the completion
-    const afterPrompt = generated.slice(prompt.length);
-    return afterPrompt.trim() || generated.trim();
+  if (result.choices?.[0]?.message?.content) {
+    return result.choices[0].message.content.trim();
   }
 
   throw new Error('Unexpected HF API response format');
@@ -199,9 +193,6 @@ async function queryHuggingFace(prompt: string, model: string): Promise<string> 
 async function generateShowNotes(fullText: string, sections: { time: string; text: string }[]): Promise<string> {
   console.log(`📝 Generating show notes from ${sections.length} sections...`);
 
-  // Use a capable instruction-following model
-  const model = 'mistralai/Mistral-7B-Instruct-v0.3';
-
   // For long transcripts, summarize in chunks then combine
   const CHUNK_SIZE = 3000;
   const chunks: string[] = [];
@@ -211,15 +202,13 @@ async function generateShowNotes(fullText: string, sections: { time: string; tex
     for (const section of sections) {
       if (section.text.length < 100) continue;
 
-      const chunkPrompt = `[INST] Summarize this section of a podcast transcript in 1-2 sentences. Focus on key decisions, topics, or actions discussed.
+      const chunkPrompt = `Summarize this section of a podcast transcript in 1-2 sentences. Focus on key decisions, topics, or actions discussed.
 
 Transcript section (starting at ${section.time}):
-${section.text.slice(0, CHUNK_SIZE)}
-
-Summary: [/INST]`;
+${section.text.slice(0, CHUNK_SIZE)}`;
 
       try {
-        const summary = await queryHuggingFace(chunkPrompt, model);
+        const summary = await queryHuggingFace(chunkPrompt);
         chunks.push(`[${section.time}] ${summary}`);
         console.log(`  ✅ Summarized section at ${section.time}`);
       } catch (error) {
@@ -235,19 +224,17 @@ Summary: [/INST]`;
 
   // Combine section summaries into final show notes
   const combinedSummaries = chunks.join('\n');
-  const finalPrompt = `[INST] You are generating show notes for a government meeting podcast. Based on the following section summaries, create well-formatted show notes with:
+  const finalPrompt = `You are generating show notes for a government meeting podcast. Based on the following section summaries, create well-formatted show notes with:
 
 1. **Summary**: A 2-3 paragraph overview of the entire meeting
 2. **Key Topics**: A bulleted list of the main topics discussed
 3. **Timeline**: Notable moments with timestamps
 
 Section summaries:
-${combinedSummaries.slice(0, 8000)}
-
-Generate the show notes: [/INST]`;
+${combinedSummaries.slice(0, 8000)}`;
 
   try {
-    const finalNotes = await queryHuggingFace(finalPrompt, model);
+    const finalNotes = await queryHuggingFace(finalPrompt);
     return finalNotes;
   } catch (error) {
     console.warn(`⚠️  Final generation failed, using section summaries: ${error instanceof Error ? error.message : error}`);
