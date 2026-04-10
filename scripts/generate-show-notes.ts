@@ -153,7 +153,7 @@ async function queryHuggingFace(prompt: string, model: string): Promise<string> 
   const hfToken = process.env.HF_TOKEN;
   if (!hfToken) throw new Error('HF_TOKEN is required');
 
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
 
   const response = await fetch(url, {
     method: 'POST',
