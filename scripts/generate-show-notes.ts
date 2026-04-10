@@ -219,50 +219,18 @@ async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<
  * Generate show notes from transcript text using BART-large-CNN summarization
  */
 async function generateShowNotes(fullText: string, sections: { time: string; text: string }[]): Promise<string> {
-  console.log(`📝 Generating show notes from ${sections.length} sections...`);
+  const cleanFullText = cleanTextForSummarization(fullText);
+  console.log(`📝 Generating show notes from ${cleanFullText.length} chars of cleaned text...`);
 
-  const sectionSummaries: { time: string; summary: string }[] = [];
-
-  // Summarize each section with BART
-  for (const section of sections) {
-    if (section.text.length < 100) continue;
-
-    try {
-      const summary = await summarizeWithBart(cleanTextForSummarization(section.text));
-      sectionSummaries.push({ time: section.time, summary });
-      console.log(`  ✅ Summarized section at ${section.time}`);
-    } catch (error) {
-      console.warn(`  ⚠️  Failed to summarize section at ${section.time}: ${error instanceof Error ? error.message : error}`);
-      // Fallback: use first 200 chars of section text
-      sectionSummaries.push({ time: section.time, summary: section.text.slice(0, 200) + '...' });
-    }
-
-    // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-
-  // If we have very few sections, also summarize the full text
-  if (sectionSummaries.length <= 2 && fullText.length > 500) {
-    try {
-      const overallSummary = await summarizeWithBart(cleanTextForSummarization(fullText.slice(0, 3000)));
-      sectionSummaries.unshift({ time: '0:00', summary: overallSummary });
-      console.log(`  ✅ Generated overall summary`);
-    } catch (error) {
-      console.warn(`  ⚠️  Overall summary failed: ${error instanceof Error ? error.message : error}`);
-    }
-  }
-
-  // Format show notes from section summaries
-  const lines: string[] = [];
-  lines.push('## Summary');
-  lines.push('');
-  lines.push(sectionSummaries.map(s => s.summary).join(' '));
-  lines.push('');
-  lines.push('## Timeline');
-  lines.push('');
-
-  for (const { time, summary } of sectionSummaries) {
-    lines.push(`[${time}] ${summary}`);
+  // Summarize the full transcript (or as much as fits in BART's context window)
+  try {
+    const summary = await summarizeWithBart(cleanFullText);
+    console.log(`  ✅ Generated summary`);
+    return summary;
+  } catch (error) {
+    console.warn(`  ⚠️  Summarization failed: ${error instanceof Error ? error.message : error}`);
+    // Fallback: use first 500 chars of cleaned text
+    return cleanFullText.slice(0, 500) + '...';
   }
 
   return lines.join('\n');
