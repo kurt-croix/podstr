@@ -168,6 +168,8 @@ async function summarizeWithBart(text: string, maxRetries: number = 3): Promise<
 
   // BART-large-CNN max input is ~1024 tokens; limit input text for safety
   const inputText = text.slice(0, 3000);
+  console.log(`📏 BART input: ${inputText.length} chars (from ${text.length} total)`);
+  console.log(`📄 Input text:\n${inputText}\n---END INPUT---`);
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const response = await fetch(url, {
