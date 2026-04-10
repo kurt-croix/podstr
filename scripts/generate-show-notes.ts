@@ -222,6 +222,11 @@ async function generateShowNotes(fullText: string, sections: { time: string; tex
   const cleanFullText = cleanTextForSummarization(fullText);
   console.log(`📝 Generating show notes from ${cleanFullText.length} chars of cleaned text...`);
 
+  // Dump cleaned text for debugging
+  const debugPath = path.resolve('.show-notes-input.txt');
+  await fs.writeFile(debugPath, cleanFullText);
+  console.log(`💾 Cleaned transcript dumped to: ${debugPath}`);
+
   // Summarize the full transcript (or as much as fits in BART's context window)
   try {
     const summary = await summarizeWithBart(cleanFullText);
@@ -232,8 +237,6 @@ async function generateShowNotes(fullText: string, sections: { time: string; tex
     // Fallback: use first 500 chars of cleaned text
     return cleanFullText.slice(0, 500) + '...';
   }
-
-  return lines.join('\n');
 }
 
 /**
