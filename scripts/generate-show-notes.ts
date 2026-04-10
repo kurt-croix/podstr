@@ -45,7 +45,7 @@ interface SrtEntry {
 const TRANSCRIPT_MAPPING_PATH = path.resolve('.transcript-mapping.json');
 const SHOW_NOTES_MAPPING_PATH = path.resolve('.show-notes-mapping.json');
 const ZHIPU_API_URL = 'https://api.z.ai/api/paas/v4/chat/completions';
-const ZHIPU_MODEL = 'glm-4-flash';
+const ZHIPU_MODEL = 'glm-4.7';
 
 /**
  * Parse SRT file content into structured entries
@@ -160,6 +160,7 @@ ${transcript}`;
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'Accept-Language': 'en-US,en',
     },
     body: JSON.stringify({
       model: ZHIPU_MODEL,
