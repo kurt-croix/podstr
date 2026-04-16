@@ -96,6 +96,20 @@ jobs:
           TEST_MODE: 'false'
         if: hashFiles('.episodes-to-transcribe.json') != ''
 
+      - name: Commit transcripts
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add transcripts/
+          git add .transcript-mapping.json || true
+          git diff --staged --quiet || git commit -m "chore: add episode transcripts"
+          git pull --rebase origin main
+          git push
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: hashFiles('transcripts/*') != ''
+
       - name: Update episodes with transcript URLs and show notes
         run: npx -y tsx scripts/update-episodes-with-transcripts.ts
         env:
@@ -113,19 +127,6 @@ jobs:
 
       - name: Build RSS feed and React app
         run: npm run build
-
-      - name: Commit transcripts
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add transcripts/
-          git add .transcript-mapping.json || true
-          git diff --staged --quiet || git commit -m "chore: add episode transcripts"
-          git push
-        timeout-minutes: 5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: hashFiles('transcripts/*') != ''
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
