@@ -1,24 +1,24 @@
 [
   {
-    "dTag": "b4a93808-41ae-4ec9-97a4-7a52cd6f5358",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_15-1776279743.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_15-1776279743.srt",
+    "dTag": "782ad88e-3b5c-4195-be26-f954e639893e",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_8-1775673174.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_8-1775673174.srt",
     "success": true,
     "event": {
       "content": "",
-      "created_at": 1776279743,
-      "id": "f66ebdabc2d33c0c989ea043f46ff0bce7e0db55e81c2eaaca1e26139917bfd2",
+      "created_at": 1775673174,
+      "id": "9b1c56abef256608364c51f858bda287ad38aebfd45f7f57ac6e724be877b2a9",
       "kind": 30054,
       "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "8f25da4e8632b2b4713c65c028de7451929ecd226e89d785c894118efc8a86c1c9f2da6d7172caa1394c11c18cb465abfbb65d0e10fe3b112aa8036c1c6d94c0",
+      "sig": "69117127485f57a8620828a9c2190906fd7b15d3848eedd8c11ce91b9963d40a7d88751444bd867f846705022b2a88556a5b06c31c3cd88c69be88900df4995b",
       "tags": [
         [
           "d",
-          "b4a93808-41ae-4ec9-97a4-7a52cd6f5358"
+          "782ad88e-3b5c-4195-be26-f954e639893e"
         ],
         [
           "title",
-          "Ray County Commissioner's Meeting 4/15"
+          "Ray County Commissioner's Meeting 4/8"
         ],
         [
           "summary",
@@ -26,7 +26,7 @@
         ],
         [
           "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/91f17f3cb40803535ec40f90411e4e11/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-15"
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/ee2f1686cd5ec4748a93b71011ab65a6/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-8"
         ],
         [
           "image",
@@ -38,7 +38,7 @@
         ],
         [
           "alt",
-          "Podcast episode: Ray County Commissioner's Meeting 4/15"
+          "Podcast episode: Ray County Commissioner's Meeting 4/8"
         ],
         [
           "client",
@@ -50,7 +50,7 @@
         ],
         [
           "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:b4a93808-41ae-4ec9-97a4-7a52cd6f5358"
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:782ad88e-3b5c-4195-be26-f954e639893e"
         ]
       ]
     }
