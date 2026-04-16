@@ -2,17 +2,14 @@
  * Update podcast episodes with transcript URLs
  *
  * This script:
- * - Reads the transcript mapping file
- * - Fetches existing episodes from Nostr
+ * - Reads the transcript mapping file (which includes original events from conversion step)
  * - Updates episodes to include transcript URLs
- * - Publishes updated episodes to Nostr
+ * - Publishes updated episodes to multiple Nostr relays
  */
 
 import { nip19 } from 'nostr-tools';
-import { NRelay1 } from '@nostrify/nostrify';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { NSecSigner } from '@nostrify/nostrify';
-import { NSyteBunkerSigner } from './lib/nsyte-bunker-minimal';
 import { promises as fs } from 'fs';
 import { WebSocket } from 'ws';
 
@@ -22,58 +19,16 @@ interface TranscriptionResult {
   transcriptUrl: string;
   success: boolean;
   error?: string;
-  event?: NostrEvent; // Original episode event to avoid re-fetching
+  event?: NostrEvent; // Original episode event from conversion step
 }
 
 const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
-
-/**
- * Create a timeout-based abort signal
- */
-function createTimeoutSignal(timeoutMs: number): AbortSignal {
-  const controller = new AbortController();
-  setTimeout(() => controller.abort(), timeoutMs);
-  return controller.signal;
-}
-
-/**
- * Fetch episode from Nostr with optimized timeout
- */
-async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string): Promise<NostrEvent | null> {
-  console.log(`      Connecting to relay: ${relayUrl}`);
-  const relay = new NRelay1(relayUrl);
-
-  try {
-    console.log(`      Sending query for episode ${dTag}...`);
-    const signal = createTimeoutSignal(5000); // 5 second timeout (more reliable)
-
-    const events = await relay.query([{
-      kinds: [30054],
-      authors: [authorPubkey],
-      '#d': [dTag],
-      limit: 1,
-    }], { signal });
-
-    console.log(`      Query completed, closing relay connection`);
-    relay.close();
-
-    if (events.length > 0) {
-      console.log(`      Found ${events.length} matching event(s)`);
-      return events[0];
-    }
-
-    console.log(`      No events found matching query`);
-    return null;
-  } catch (error) {
-    console.error(`      ❌ Error fetching episode ${dTag}:`, error);
-    try {
-      relay.close();
-    } catch {
-      // Ignore close errors
-    }
-    return null;
-  }
-}
+const PUBLISH_RELAYS = [
+  'wss://nos.lol',
+  'wss://relay.damus.io',
+  'wss://relay.primal.net',
+  'wss://relay.ditto.pub',
+];
 
 /**
  * Update episode with transcript URL
@@ -81,102 +36,69 @@ async function fetchEpisode(relayUrl: string, authorPubkey: string, dTag: string
 async function updateEpisodeWithTranscript(
   event: NostrEvent,
   transcriptUrl: string,
-  privateKey: string | undefined,
-  _nbunksec?: string
+  privateKey: string,
 ): Promise<NostrEvent> {
-  // Create signer - use local signing for speed and reliability
   let signer;
-  if (privateKey) {
-    console.log('🔐 Using local NSecSigner');
-
-    // Convert nsec (bech32) to hex if needed
-    let hexPrivateKey = privateKey;
-    if (privateKey.startsWith('nsec1')) {
-      try {
-        const decoded = nip19.decode(privateKey);
-        if (decoded.type === 'nsec') {
-          hexPrivateKey = Buffer.from(decoded.data as Uint8Array).toString('hex');
-        }
-      } catch {
-        // Assume hex format
+  if (privateKey.startsWith('nsec1')) {
+    try {
+      const decoded = nip19.decode(privateKey);
+      if (decoded.type === 'nsec') {
+        const hexKey = Buffer.from(decoded.data as Uint8Array).toString('hex');
+        signer = new NSecSigner(new Uint8Array(Buffer.from(hexKey, 'hex')));
       }
+    } catch {
+      // Assume hex format
+      signer = new NSecSigner(new Uint8Array(Buffer.from(privateKey, 'hex')));
     }
-
-    // Convert hex string to Uint8Array for NSecSigner
-    const privateKeyBytes = new Uint8Array(Buffer.from(hexPrivateKey, 'hex'));
-    signer = new NSecSigner(privateKeyBytes);
   } else {
-    throw new Error('Private key is required for signing');
+    signer = new NSecSigner(new Uint8Array(Buffer.from(privateKey, 'hex')));
   }
 
-  // Check if transcript tag already exists
-  const hasTranscriptTag = event.tags.some(([name]) => name === 'transcript');
-
-  // Build new tags
+  // Build new tags — replace or add transcript tag
   const newTags = [...event.tags];
-  if (!hasTranscriptTag) {
-    newTags.push(['transcript', transcriptUrl]);
+  const idx = newTags.findIndex(([name]) => name === 'transcript');
+  if (idx >= 0) {
+    newTags[idx] = ['transcript', transcriptUrl];
   } else {
-    // Replace existing transcript tag
-    const transcriptIndex = newTags.findIndex(([name]) => name === 'transcript');
-    if (transcriptIndex >= 0) {
-      newTags[transcriptIndex] = ['transcript', transcriptUrl];
-    }
+    newTags.push(['transcript', transcriptUrl]);
   }
 
-  // Create updated event
-  const updatedEvent = await signer.signEvent({
+  return signer.signEvent({
     kind: event.kind,
     content: event.content,
     created_at: Math.floor(Date.now() / 1000),
     tags: newTags,
   });
-
-  return updatedEvent;
 }
 
 /**
- * Publish event to Nostr using WebSocket (matching conversion script approach)
+ * Publish event to a single relay
  */
-async function publishEvent(event: NostrEvent, relayUrl: string): Promise<boolean> {
-  const TIMEOUT_MS = 30_000;
-  console.log(`      Publishing event to ${relayUrl}...`);
+async function publishToRelay(event: NostrEvent, relayUrl: string): Promise<boolean> {
+  const TIMEOUT_MS = 15_000;
 
   return new Promise<boolean>((resolve) => {
     const ws = new WebSocket(relayUrl);
 
     const timeoutId = setTimeout(() => {
-      console.error(`      ❌ Publish timeout after ${TIMEOUT_MS}ms`);
       ws.close();
       resolve(false);
     }, TIMEOUT_MS);
 
     ws.on('open', () => {
-      console.log(`      Connected, sending EVENT message...`);
-      const eventMsg = JSON.stringify(['EVENT', event]);
-      ws.send(eventMsg);
+      ws.send(JSON.stringify(['EVENT', event]));
     });
 
     ws.on('message', (data: Buffer) => {
       const message = JSON.parse(data.toString());
-
       if (message[0] === 'OK') {
-        const success = message[2];
         clearTimeout(timeoutId);
         ws.close();
-
-        if (success) {
-          console.log(`      ✅ Event published successfully!`);
-          resolve(true);
-        } else {
-          console.error(`      ❌ Event rejected: ${message[3]}`);
-          resolve(false);
-        }
+        resolve(!!message[2]);
       }
     });
 
-    ws.on('error', (error) => {
-      console.error(`      ❌ WebSocket error:`, error);
+    ws.on('error', () => {
       clearTimeout(timeoutId);
       ws.close();
       resolve(false);
@@ -185,25 +107,38 @@ async function publishEvent(event: NostrEvent, relayUrl: string): Promise<boolea
 }
 
 /**
+ * Publish event to multiple relays, return true if at least one succeeds
+ */
+async function publishEvent(event: NostrEvent): Promise<boolean> {
+  for (const relayUrl of PUBLISH_RELAYS) {
+    try {
+      const ok = await publishToRelay(event, relayUrl);
+      if (ok) {
+        console.log(`      ✅ Published to ${relayUrl}`);
+        return true;
+      }
+      console.log(`      ⚠️  Rejected by ${relayUrl}`);
+    } catch {
+      console.log(`      ⚠️  Failed to connect to ${relayUrl}`);
+    }
+  }
+  return false;
+}
+
+/**
  * Main function
  */
 async function main() {
   console.log('🔄 Updating episodes with transcript URLs...');
 
-  // Get configuration
-  const config = {
-    nostrPrivateKey: process.env.NOSTR_PRIVATE_KEY!,
-    nbunksec: process.env.NBUNKSEC,
-    relayUrl: process.env.RELAY_URL || 'wss://nos.lol',
-  };
+  const nostrPrivateKey = process.env.NOSTR_PRIVATE_KEY;
 
-  // Validate configuration
-  if (!config.nbunksec && !config.nostrPrivateKey) {
-    console.error('❌ Either NBUNKSEC or NOSTR_PRIVATE_KEY environment variable is required');
+  if (!nostrPrivateKey) {
+    console.error('❌ NOSTR_PRIVATE_KEY environment variable is required');
     process.exit(1);
   }
 
-  // Read transcript mapping
+  // Read transcript mapping (includes original events from conversion step)
   let transcriptionResults: TranscriptionResult[];
   try {
     const mappingJson = await fs.readFile(TRANSCRIPT_MAPPING_PATH, 'utf-8');
@@ -211,11 +146,10 @@ async function main() {
     console.log(`📋 Found ${transcriptionResults.length} transcription result(s)`);
   } catch (error) {
     console.error('❌ Failed to read transcript mapping:', error);
-    console.error(`   Expected file at: ${TRANSCRIPT_MAPPING_PATH}`);
     process.exit(1);
   }
 
-  // Filter successful transcriptions
+  // Filter to successful transcriptions
   const successfulTranscriptions = transcriptionResults.filter(r => r.success);
   console.log(`✅ ${successfulTranscriptions.length} successful transcription(s)`);
 
@@ -224,94 +158,48 @@ async function main() {
     process.exit(0);
   }
 
-  // Get author pubkey
-  let authorPubkey = '';
-  if (config.nbunksec) {
-    const [bunkerUrl, _rest] = config.nbunksec.split('?');
-    const _bunker = new NSyteBunkerSigner(bunkerUrl, config.nbunksec);
-    // Get pubkey from bunker (this may require a connection)
-    // For now, we'll use the event's pubkey
-  } else {
-    if (config.nostrPrivateKey.startsWith('nsec1')) {
-      const decoded = nip19.decode(config.nostrPrivateKey);
-      if (decoded.type === 'nsec') {
-        authorPubkey = Buffer.from(decoded.data as Uint8Array).toString('hex');
-      }
-    } else {
-      authorPubkey = config.nostrPrivateKey;
-    }
-  }
-
-  console.log(`👤 Author pubkey: ${authorPubkey.substring(0, 8)}...`);
-
-  // Use faster relay for better performance
-  if (config.relayUrl === 'wss://nos.lol') {
-    config.relayUrl = 'wss://relay.primal.net'; // Switch to faster relay
-  }
-
-  // Update episodes
   let successCount = 0;
   let failureCount = 0;
 
   console.log(`\n🔄 Starting episode update process...`);
-  console.log(`   Relay: ${config.relayUrl}`);
+  console.log(`   Relays: ${PUBLISH_RELAYS.join(', ')}`);
   console.log(`   Episodes to update: ${successfulTranscriptions.length}`);
 
   for (const result of successfulTranscriptions) {
     console.log(`\n🔄 Processing episode: ${result.dTag}`);
-    console.log(`   Transcript URL: ${result.transcriptUrl}`);
 
-    // Use event from transcription result if available
-    let episode = result.event;
-
-    // Only fetch if we don't have the event
-    if (!episode) {
-      console.log(`   Step 1: Fetching episode from relay...`);
-      episode = await fetchEpisode(config.relayUrl, authorPubkey, result.dTag);
-      if (!episode) {
-        console.error(`❌ Failed to fetch episode ${result.dTag}`);
-        failureCount++;
-        continue;
-      }
-    } else {
-      console.log(`   Step 1: Using original episode event (no fetch needed)`);
+    // Event must be present from the conversion step
+    if (!result.event) {
+      console.error(`   ❌ No event in mapping for ${result.dTag} — skipping`);
+      failureCount++;
+      continue;
     }
 
-    console.log(`   ✅ Found episode: ${episode.id.substring(0, 8)}...`);
+    console.log(`   ✅ Using event from pipeline (no relay fetch needed)`);
 
-    // Update episode with transcript URL
     try {
-      console.log(`   Step 2: Updating event with transcript URL...`);
       const updatedEvent = await updateEpisodeWithTranscript(
-        episode,
+        result.event,
         result.transcriptUrl,
-        config.nostrPrivateKey,
-        config.nbunksec
+        nostrPrivateKey,
       );
 
-      console.log(`   ✅ Updated event: ${updatedEvent.id.substring(0, 8)}...`);
-
-      // Publish updated event
-      console.log(`   Step 3: Publishing updated event to relay...`);
-      const published = await publishEvent(updatedEvent, config.relayUrl);
+      console.log(`   Publishing updated event...`);
+      const published = await publishEvent(updatedEvent);
       if (published) {
-        console.log(`   ✅ Published updated event successfully`);
+        console.log(`   ✅ Episode updated successfully`);
         successCount++;
       } else {
-        console.error(`   ❌ Failed to publish updated event`);
+        console.error(`   ❌ Failed to publish to any relay`);
         failureCount++;
       }
     } catch (error) {
       console.error(`   ❌ Failed to update episode:`, error);
       failureCount++;
     }
-
-    console.log(`   Episode processing complete`);
   }
 
-  // Log summary
   console.log('\n📊 Update Summary:');
-  console.log(`  Total episodes: ${successfulTranscriptions.length}`);
   console.log(`  Successful: ${successCount}`);
   console.log(`  Failed: ${failureCount}`);
 
