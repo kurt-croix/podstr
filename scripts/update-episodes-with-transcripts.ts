@@ -33,7 +33,7 @@ const PUBLISH_RELAYS = [
 /**
  * Update episode with transcript URL
  */
-async function updateEpisodeWithTranscript(
+export async function updateEpisodeWithTranscript(
   event: NostrEvent,
   transcriptUrl: string,
   privateKey: string,
@@ -74,7 +74,7 @@ async function updateEpisodeWithTranscript(
 /**
  * Publish event to a single relay
  */
-async function publishToRelay(event: NostrEvent, relayUrl: string): Promise<boolean> {
+export async function publishToRelay(event: NostrEvent, relayUrl: string): Promise<boolean> {
   const TIMEOUT_MS = 15_000;
 
   return new Promise<boolean>((resolve) => {
@@ -109,7 +109,7 @@ async function publishToRelay(event: NostrEvent, relayUrl: string): Promise<bool
 /**
  * Publish event to multiple relays, return true if at least one succeeds
  */
-async function publishEvent(event: NostrEvent): Promise<boolean> {
+export async function publishEvent(event: NostrEvent): Promise<boolean> {
   for (const relayUrl of PUBLISH_RELAYS) {
     try {
       const ok = await publishToRelay(event, relayUrl);
@@ -212,7 +212,10 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(error => {
-  console.error('❌ Unhandled error:', error);
-  process.exit(1);
-});
+// Only run main when executed directly, not when imported by tests
+if (process.argv[1]?.endsWith('update-episodes-with-transcripts.ts')) {
+  main().catch(error => {
+    console.error('❌ Unhandled error:', error);
+    process.exit(1);
+  });
+}
