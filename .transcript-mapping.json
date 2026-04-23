@@ -1,8 +1,58 @@
 [
   {
     "dTag": "b17a5030-79c9-4a7a-bbe5-5fa82144701d",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_22-1776884482.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_22-1776884482.srt",
-    "success": true
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_22-1776884481.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_22-1776884481.srt",
+    "success": true,
+    "event": {
+      "content": "",
+      "created_at": 1776884481,
+      "id": "bedba89c8f244ec2dda2b65f9488bde51588f25005ffe0d366c5642be92f122d",
+      "kind": 30054,
+      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
+      "sig": "a8bf3df637810e99c1b45df9447da7a84906f8e6cd594b4e96a80c025fc94cb3a799c0cc74c91a6fbfa9730fbf1898069e384d4bdaad39de150d4dbf474b894e",
+      "tags": [
+        [
+          "d",
+          "b17a5030-79c9-4a7a-bbe5-5fa82144701d"
+        ],
+        [
+          "title",
+          "Ray County Commissioner's Meeting 4/22"
+        ],
+        [
+          "summary",
+          "Ray County Commissioner's meetings streaming"
+        ],
+        [
+          "audio",
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/de214ae26b6653fa215f7ae357437d38/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-22"
+        ],
+        [
+          "image",
+          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
+        ],
+        [
+          "duration",
+          "0"
+        ],
+        [
+          "alt",
+          "Podcast episode: Ray County Commissioner's Meeting 4/22"
+        ],
+        [
+          "client",
+          "podstr-github-actions"
+        ],
+        [
+          "t",
+          "livestream"
+        ],
+        [
+          "livestream",
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:b17a5030-79c9-4a7a-bbe5-5fa82144701d"
+        ]
+      ]
+    }
   }
 ]
