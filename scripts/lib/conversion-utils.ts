@@ -62,6 +62,22 @@ export function isLivestreamConverted(livestream: NostrEvent, existingEpisodes: 
   });
 }
 
+/**
+ * Check if a livestream was already processed according to local state.
+ * This is faster and more reliable than relay queries for dedup.
+ */
+export function isLivestreamInState(
+  livestream: NostrEvent,
+  processedLivestreams: Record<string, { status: string }>,
+): boolean {
+  const dTag = livestream.tags.find(([name]) => name === 'd')?.[1];
+  if (!dTag) return false;
+
+  const key = `${livestream.pubkey}:${dTag}`;
+  const entry = processedLivestreams[key];
+  return !!entry && entry.status === 'success';
+}
+
 export function groupLivestreamsForBatch(livestreams: NostrEvent[]): Record<string, NostrEvent[]> {
   const byHour: Record<string, NostrEvent[]> = {};
 
