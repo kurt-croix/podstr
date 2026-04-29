@@ -5,10 +5,9 @@ on:
   push:
     branches: ["main", "bugfixes", "feat/*"]
 
-  # Schedule automatic deployment Wednesday and Thursday at 1pm Central
+  # Schedule automatic deployment daily at 1pm Central (6pm UTC)
   schedule:
-    - cron: '0 18 * * 3'  # Wednesday at 1pm Central (6pm UTC)
-    - cron: '0 18 * * 4'  # Thursday at 1pm Central (6pm UTC)
+    - cron: '0 18 * * *'  # Daily at 1pm Central (6pm UTC)
 
   # Allows you to run this workflow manually from Actions tab
   workflow_dispatch:
