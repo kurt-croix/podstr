@@ -5,16 +5,20 @@ on:
   push:
     branches: ["main", "bugfixes", "feat/*"]
 
-  # Schedule automatic deployment Wednesday and Thursday at 1pm Central
+  # Schedule automatic deployment daily at 1pm Central (6pm UTC)
   schedule:
-    - cron: '0 18 * * 3'  # Wednesday at 1pm Central (6pm UTC)
-    - cron: '0 18 * * 4'  # Thursday at 1pm Central (6pm UTC)
+    - cron: '0 18 * * *'  # Daily at 1pm Central (6pm UTC)
 
   # Allows you to run this workflow manually from Actions tab
   workflow_dispatch:
     inputs:
       retroactive_transcription:
         description: 'Enable retroactive transcription for past episodes'
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: 'Dry run — skip publishing to Nostr relays and AI API calls'
         required: false
         default: false
         type: boolean
@@ -36,11 +40,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Pipeline job — runs on all branches (dry-run on non-main)
+  pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -116,6 +117,7 @@ jobs:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
           NBUNKSEC: ${{ secrets.NBUNKSEC }}
           RELAY_URL: "wss://nos.lol"
+          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
         if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Generate show notes
@@ -123,6 +125,7 @@ jobs:
         timeout-minutes: 30
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
         if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Update episodes with description tags
@@ -135,14 +138,24 @@ jobs:
       - name: Build RSS feed and React app
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main'
         with:
           path: dist
 
+  # Deploy job — only on main, after pipeline succeeds
+  deploy:
+    needs: pipeline
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
         id: deployment
