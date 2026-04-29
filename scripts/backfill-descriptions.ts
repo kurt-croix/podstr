@@ -205,37 +205,55 @@ async function updateEpisodeWithDescription(
 async function main() {
   console.log('🔄 Backfilling descriptions for past episodes...');
 
+  const dryRun = process.env.DRY_RUN === 'true' || process.argv.includes('--dry-run');
+  if (dryRun) {
+    console.log('🏃 DRY RUN MODE — no API calls, no events published');
+  }
+
   const nostrPrivateKey = process.env.NOSTR_PRIVATE_KEY;
-  if (!nostrPrivateKey) {
+  if (!nostrPrivateKey && !dryRun) {
     console.error('❌ NOSTR_PRIVATE_KEY environment variable is required');
     process.exit(1);
   }
 
-  if (!process.env.ZHIPU_API_KEY) {
+  if (!process.env.ZHIPU_API_KEY && !dryRun) {
     console.error('❌ ZHIPU_API_KEY environment variable is required');
     process.exit(1);
   }
 
   // Get the signer's pubkey to query our own episodes
-  const signer = createSigner(nostrPrivateKey);
-  // For NSecSigner, we need the pubkey — derive from private key
   const { getPublicKey } = await import('nostr-tools');
   let pubkey: string;
-  if (nostrPrivateKey.startsWith('nsec1')) {
-    const decoded = nip19.decode(nostrPrivateKey);
-    pubkey = getPublicKey(decoded.data as string);
-  } else {
-    pubkey = getPublicKey(nostrPrivateKey);
+  if (nostrPrivateKey) {
+    if (nostrPrivateKey.startsWith('nsec1')) {
+      const decoded = nip19.decode(nostrPrivateKey);
+      pubkey = getPublicKey(decoded.data as string);
+    } else {
+      pubkey = getPublicKey(nostrPrivateKey);
+    }
+    console.log(`🔑 Episode author pubkey: ${pubkey.substring(0, 8)}...`);
+  } else if (dryRun) {
+    // In dry-run without key, use env var or skip relay query
+    pubkey = process.env.EPISODE_AUTHOR_PUBKEY || '';
+    if (!pubkey) {
+      console.log('🏃 DRY RUN: No NOSTR_PRIVATE_KEY or EPISODE_AUTHOR_PUBKEY — listing episodes only');
+    } else {
+      console.log(`🔑 Episode author pubkey: ${pubkey.substring(0, 8)}... (from env)`);
+    }
   }
-  console.log(`🔑 Episode author pubkey: ${pubkey.substring(0, 8)}...`);
 
   // Fetch all kind 30054 episodes
-  console.log('\n📡 Fetching episodes from relays...');
-  const events = await queryRelay('wss://nos.lol', {
-    kinds: [30054],
-    authors: [pubkey],
-    limit: 200,
-  });
+  let events: NostrEvent[] = [];
+  if (pubkey) {
+    console.log('\n📡 Fetching episodes from relays...');
+    events = await queryRelay('wss://nos.lol', {
+      kinds: [30054],
+      authors: [pubkey],
+      limit: 200,
+    });
+  } else {
+    console.log('\n🏃 DRY RUN: Skipping relay query (no pubkey)');
+  }
   console.log(`📊 Found ${events.length} total episode(s)`);
 
   // Filter: has transcript, no description
@@ -298,12 +316,27 @@ async function main() {
       console.log(`   📊 ${text.length} chars, ~${wordCount} words, targeting ~${targetWords} word summary`);
 
       // Generate show notes
-      console.log(`   📝 Generating long summary...`);
-      const showNotes = await summarizeWithGLM(text, targetWords);
-      console.log(`   📝 Generating short summary...`);
-      const shortSummary = await summarizeWithGLM(text, 100);
+      let showNotes: string;
+      let shortSummary: string;
+
+      if (dryRun) {
+        showNotes = `[DRY RUN] Would generate ~${targetWords} word summary from ${wordCount} word transcript`;
+        shortSummary = `[DRY RUN] Would generate ~100 word short summary from ${wordCount} word transcript`;
+        console.log(`   🏃 DRY RUN: Skipping API calls`);
+      } else {
+        console.log(`   📝 Generating long summary...`);
+        showNotes = await summarizeWithGLM(text, targetWords);
+        console.log(`   📝 Generating short summary...`);
+        shortSummary = await summarizeWithGLM(text, 100);
+      }
 
       // Update and publish
+      if (dryRun) {
+        console.log(`   🏃 DRY RUN: Would add description tag (${shortSummary.length + showNotes.length} chars)`);
+        console.log(`   🏃 Would publish updated event to: ${RELAYS.join(', ')}`);
+        successCount++;
+        continue;
+      }
       const updatedEvent = await updateEpisodeWithDescription(
         event,
         shortSummary,
