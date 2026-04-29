@@ -12,16 +12,6 @@ on:
   # Allows you to run this workflow manually from Actions tab
   workflow_dispatch:
     inputs:
-      retroactive_transcription:
-        description: 'Enable retroactive transcription for past episodes'
-        required: false
-        default: false
-        type: boolean
-      backfill_descriptions:
-        description: 'Backfill descriptions for past episodes with transcripts'
-        required: false
-        default: false
-        type: boolean
       dry_run:
         description: 'Dry run — skip publishing to Nostr relays and AI API calls'
         required: false
@@ -77,23 +67,6 @@ jobs:
         run: |
           pip install -q git+https://github.com/m-bain/whisperx.git
 
-      - name: Check past episodes for missing transcripts
-        run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
-        env:
-          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          NBUNKSEC: ${{ secrets.NBUNKSEC }}
-          RETROACTIVE_TRANSCRIPTION: ${{ github.event.inputs.retroactive_transcription == 'true' }}
-        if: github.event.inputs.retroactive_transcription == 'true'
-
-      - name: Backfill descriptions for past episodes
-        run: npx -y tsx scripts/backfill-descriptions.ts
-        timeout-minutes: 60
-        env:
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
-        if: github.event.inputs.backfill_descriptions == 'true'
-
       - name: Convert livestreams to episodes
         run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
         env:
@@ -138,7 +111,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: hashFiles('transcripts/*') != ''
 
-      - name: Update episodes with transcript URLs and show notes
+      - name: Update episodes with transcript URLs
         run: npx -y tsx scripts/update-episodes-with-transcripts.ts
         env:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
@@ -170,10 +143,11 @@ jobs:
 
       - name: Update episodes with description tags
         run: npx -y tsx scripts/update-episodes-with-descriptions.ts
+        timeout-minutes: 30
         env:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
           NBUNKSEC: ${{ secrets.NBUNKSEC }}
-        if: hashFiles('.show-notes-mapping.json') != ''
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
 
       - name: Build RSS feed and React app
         run: npm run build
