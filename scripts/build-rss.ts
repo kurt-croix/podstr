@@ -505,7 +505,7 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
 
     let modified = false;
     const newTags = [...episode.tags];
-    let newContent = episode.content;
+    const newContent = episode.content;
 
     // Add transcript URL if missing
     const transcriptUrl = transcriptMap.get(dTag);

@@ -40,11 +40,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Pipeline job — runs on all branches (dry-run on non-main)
+  pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -134,17 +131,24 @@ jobs:
       - name: Build RSS feed and React app
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        if: github.ref == 'refs/heads/main'
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
 
+  # Deploy job — only on main, after pipeline succeeds
+  deploy:
+    needs: pipeline
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
-        if: github.ref == 'refs/heads/main'
         id: deployment
