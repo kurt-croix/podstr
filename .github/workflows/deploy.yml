@@ -1,58 +1,34 @@
 name: Deploy to GitHub Pages
 
 on:
-  # Runs on pushes targeting default branch
+  # Deploy on push to main (frontend changes, transcript commits from pipeline)
   push:
-    branches: ["main", "bugfixes", "feat/*"]
+    branches: ["main"]
 
-  # Schedule automatic deployment daily at 1pm Central (6pm UTC)
-  schedule:
-    - cron: '0 18 * * *'  # Daily at 1pm Central (6pm UTC)
+  # Deploy after episode processing completes
+  workflow_run:
+    workflows: ["Process Episodes"]
+    types: [completed]
+    branches: ["main"]
 
-  # Allows you to run this workflow manually from Actions tab
+  # Manual trigger
   workflow_dispatch:
-    inputs:
-      retroactive_transcription:
-        description: 'Enable retroactive transcription for past episodes'
-        required: false
-        default: false
-        type: boolean
-      backfill_descriptions:
-        description: 'Backfill descriptions for past episodes with transcripts'
-        required: false
-        default: false
-        type: boolean
-      dry_run:
-        description: 'Dry run — skip publishing to Nostr relays and AI API calls'
-        required: false
-        default: false
-        type: boolean
-      test_mode:
-        description: 'Enable test mode (10-minute transcription timeout)'
-        required: false
-        default: false
-        type: boolean
 
-# Sets permissions of GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
-# Allow concurrent runs so transcription jobs don't cancel each other
 concurrency:
-  group: "pages-${{ github.ref }}"
+  group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Pipeline job — runs on all branches (dry-run on non-main)
-  pipeline:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -60,134 +36,22 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install Node dependencies
+      - name: Install dependencies
         run: npm ci
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install ffmpeg
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg > /dev/null
-
-      - name: Install WhisperX
-        run: |
-          pip install -q git+https://github.com/m-bain/whisperx.git
-
-      - name: Check past episodes for missing transcripts
-        run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
-        env:
-          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          NBUNKSEC: ${{ secrets.NBUNKSEC }}
-          RETROACTIVE_TRANSCRIPTION: ${{ github.event.inputs.retroactive_transcription == 'true' }}
-        if: github.event.inputs.retroactive_transcription == 'true'
-
-      - name: Backfill descriptions for past episodes
-        run: npx -y tsx scripts/backfill-descriptions.ts
-        timeout-minutes: 60
-        env:
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
-        if: github.event.inputs.backfill_descriptions == 'true'
-
-      - name: Convert livestreams to episodes
-        run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
-        env:
-          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          NBUNKSEC: ${{ secrets.NBUNKSEC }}
-
-      - name: Commit conversion state
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add .github/conversion-state.json || true
-          git diff --staged --quiet || git commit -m "chore: update conversion state"
-          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
-          git push
-        timeout-minutes: 5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: hashFiles('.github/conversion-state.json') != ''
-
-      - name: Transcribe audio with WhisperX
-        run: npx -y tsx scripts/transcribe-audio.ts
-        timeout-minutes: 360
-        continue-on-error: true
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-          TEST_MODE: 'false'
-        if: hashFiles('.episodes-to-transcribe.json') != ''
-
-      - name: Commit transcripts
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add transcripts/
-          git add .transcript-mapping.json || true
-          git diff --staged --quiet || git commit -m "chore: add episode transcripts"
-          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
-          git push
-        timeout-minutes: 5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: hashFiles('transcripts/*') != ''
-
-      - name: Update episodes with transcript URLs and show notes
-        run: npx -y tsx scripts/update-episodes-with-transcripts.ts
-        env:
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          NBUNKSEC: ${{ secrets.NBUNKSEC }}
-          RELAY_URL: "wss://nos.lol"
-          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
-        if: hashFiles('.transcript-mapping.json') != ''
-
-      - name: Generate show notes
-        run: npx -y tsx scripts/generate-show-notes.ts
-        timeout-minutes: 30
-        env:
-          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
-          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
-        if: hashFiles('.transcript-mapping.json') != ''
-
-      - name: Commit show notes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add .show-notes-mapping.json || true
-          git diff --staged --quiet || git commit -m "chore: add episode show notes"
-          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
-          git push
-        timeout-minutes: 5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: hashFiles('.show-notes-mapping.json') != ''
-
-      - name: Update episodes with description tags
-        run: npx -y tsx scripts/update-episodes-with-descriptions.ts
-        env:
-          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
-          NBUNKSEC: ${{ secrets.NBUNKSEC }}
-        if: hashFiles('.show-notes-mapping.json') != ''
 
       - name: Build RSS feed and React app
         run: npm run build
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
-        if: github.ref == 'refs/heads/main'
         with:
           path: dist
 
-  # Deploy job — only on main, after pipeline succeeds
   deploy:
-    needs: pipeline
-    if: github.ref == 'refs/heads/main'
+    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
