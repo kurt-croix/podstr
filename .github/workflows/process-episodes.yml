@@ -1,0 +1,146 @@
+name: Process Episodes
+
+on:
+  # Run on pushes to main and feature branches
+  push:
+    branches: ["main", "bugfixes", "feat/*"]
+    paths-ignore:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "tailwind.config.*"
+      - "postcss.config.*"
+
+  # Schedule daily at 1pm Central (6pm UTC)
+  schedule:
+    - cron: '0 18 * * *'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — skip publishing to Nostr relays and AI API calls'
+        required: false
+        default: false
+        type: boolean
+      test_mode:
+        description: 'Enable test mode (10-minute transcription timeout)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+
+      - name: Install WhisperX
+        run: |
+          pip install -q git+https://github.com/m-bain/whisperx.git
+
+      - name: Convert livestreams to episodes
+        run: npx -y tsx scripts/convert-livestreams-to-episodes.ts
+        env:
+          LIVESTREAM_AUTHOR_NPUB: ${{ secrets.LIVESTREAM_AUTHOR_NPUB }}
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+
+      - name: Commit conversion state
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -f .github/conversion-state.json || true
+          git diff --staged --quiet || git commit -m "chore: update conversion state"
+          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          git push
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Transcribe audio with WhisperX
+        run: npx -y tsx scripts/transcribe-audio.ts
+        timeout-minutes: 360
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          TEST_MODE: ${{ github.event.inputs.test_mode == 'true' && 'true' || 'false' }}
+        if: hashFiles('.episodes-to-transcribe.json') != ''
+
+      - name: Commit transcripts
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add transcripts/
+          git add .transcript-mapping.json || true
+          git diff --staged --quiet || git commit -m "chore: add episode transcripts"
+          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          git push
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: hashFiles('transcripts/*') != ''
+
+      - name: Update episodes with transcript URLs
+        run: npx -y tsx scripts/update-episodes-with-transcripts.ts
+        env:
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+          RELAY_URL: "wss://nos.lol"
+          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
+        if: hashFiles('.transcript-mapping.json') != ''
+
+      - name: Generate show notes
+        run: npx -y tsx scripts/generate-show-notes.ts
+        timeout-minutes: 30
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
+        if: hashFiles('.transcript-mapping.json') != ''
+
+      - name: Commit show notes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .show-notes-mapping.json || true
+          git diff --staged --quiet || git commit -m "chore: add episode show notes"
+          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          git push
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: hashFiles('.show-notes-mapping.json') != ''
+
+      - name: Update episodes with description tags
+        run: npx -y tsx scripts/update-episodes-with-descriptions.ts
+        timeout-minutes: 30
+        env:
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
