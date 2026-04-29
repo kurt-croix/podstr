@@ -14,6 +14,7 @@ import * as path from 'path';
 import { exec, spawn } from 'child_process';
 import { EpisodeMetadata } from './lib/conversion-types';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { queryRelay } from './lib/relay-query';
 
 interface TranscriptionResult {
   dTag: string;
@@ -38,6 +39,45 @@ function sanitizeFilename(filename: string): string {
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '')
     .substring(0, 100); // Limit length
+}
+
+/**
+ * Try to resolve a fallback audio URL from the livestream event's recording tag.
+ * Episode events have a `livestream` tag like ["livestream", "30311:<pubkey>:<d-tag>"].
+ */
+async function resolveRecordingFallback(episodeEvent: NostrEvent | undefined): Promise<string | null> {
+  if (!episodeEvent) return null;
+
+  const livestreamRef = episodeEvent.tags.find(([name]) => name === 'livestream')?.[1];
+  if (!livestreamRef) return null;
+
+  // Parse "30311:<pubkey>:<d-tag>"
+  const parts = livestreamRef.split(':');
+  if (parts.length < 3 || parts[0] !== '30311') return null;
+
+  const [, pubkey, dTag] = parts;
+  console.log(`🔍 Looking up livestream for recording fallback: ${dTag}`);
+
+  try {
+    const events = await queryRelay('wss://nos.lol', {
+      kinds: [30311],
+      authors: [pubkey],
+      '#d': [dTag],
+      limit: 1,
+    });
+
+    if (events.length === 0) return null;
+
+    const recording = events[0].tags.find(([name]) => name === 'recording')?.[1];
+    if (recording) {
+      console.log(`✅ Found recording fallback: ${recording.substring(0, 80)}...`);
+      return recording;
+    }
+  } catch (error) {
+    console.warn(`⚠️  Failed to fetch livestream for fallback:`, error);
+  }
+
+  return null;
 }
 
 /**
@@ -234,8 +274,25 @@ async function transcribeEpisode(episode: EpisodeMetadata, tempDir: string): Pro
   const transcriptUrl = `${BASE_URL}/transcripts/${transcriptFilename}`;
 
   try {
-    // Download audio
-    await downloadFile(audioUrl, audioPath);
+    // Download audio (try primary URL, fallback to recording on 404)
+    let downloadUrl = audioUrl;
+    try {
+      await downloadFile(downloadUrl, audioPath);
+    } catch (downloadError) {
+      const msg = downloadError instanceof Error ? downloadError.message : '';
+      if (msg.includes('404')) {
+        console.log(`⚠️  Primary URL returned 404, trying recording fallback...`);
+        const fallbackUrl = await resolveRecordingFallback(episode.event);
+        if (fallbackUrl) {
+          downloadUrl = fallbackUrl;
+          await downloadFile(downloadUrl, audioPath);
+        } else {
+          throw downloadError;
+        }
+      } else {
+        throw downloadError;
+      }
+    }
 
     // Run WhisperX
     await runWhisperX(audioPath, transcriptPath);
