@@ -125,6 +125,13 @@ jobs:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         if: hashFiles('.transcript-mapping.json') != ''
 
+      - name: Update episodes with description tags
+        run: npx -y tsx scripts/update-episodes-with-descriptions.ts
+        env:
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+          NBUNKSEC: ${{ secrets.NBUNKSEC }}
+        if: hashFiles('.show-notes-mapping.json') != ''
+
       - name: Build RSS feed and React app
         run: npm run build
 
