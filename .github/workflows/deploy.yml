@@ -104,7 +104,7 @@ jobs:
           git add transcripts/
           git add .transcript-mapping.json || true
           git diff --staged --quiet || git commit -m "chore: add episode transcripts"
-          git pull --rebase origin main
+          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
           git push
         timeout-minutes: 5
         env:
