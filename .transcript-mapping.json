@@ -4,6 +4,6 @@
     "transcriptPath": "",
     "transcriptUrl": "",
     "success": false,
-    "error": "Failed to download: Not Found (404)"
+    "error": "WhisperX failed with exit code 1"
   }
 ]
