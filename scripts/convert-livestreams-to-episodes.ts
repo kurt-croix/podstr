@@ -27,6 +27,7 @@ import {
   extractRecordingUrl,
   shouldSkipLivestream,
   isLivestreamConverted,
+  isLivestreamInState,
   groupLivestreamsForBatch,
   combineAudioFiles,
   uploadCombinedAudio,
@@ -606,8 +607,9 @@ async function main() {
             continue;
           }
 
-          // Check if any livestream in group has been converted
-          const hasConverted = group.some(stream => isLivestreamConverted(stream, existingEpisodes));
+          // Check if any livestream in group has been converted (local state first)
+          const hasInState = group.some(stream => isLivestreamInState(stream, state.processedLivestreams));
+          const hasConverted = hasInState || group.some(stream => isLivestreamConverted(stream, existingEpisodes));
 
           if (hasConverted) {
             console.log(`⏭️  Skipping group (already converted)`);
@@ -725,7 +727,19 @@ async function main() {
             });
             continue;
           }
-          // Check if already converted
+          // Check local state first (faster, more reliable than relay query)
+          if (isLivestreamInState(livestream, state.processedLivestreams)) {
+            console.log(`⏭️  Skipping (already in local state): ${streamDTag}`);
+            skippedCount.value++;
+            summaries.push({
+              livestreamAddress: `${livestream.pubkey}:${streamDTag}`,
+              title,
+              status: 'skipped',
+              reason: 'Already converted (local state)',
+            });
+            continue;
+          }
+          // Check if already converted via relay query
           if (isLivestreamConverted(livestream, existingEpisodes)) {
             console.log(`⏭️  Skipping (already converted): ${streamDTag}`);
 
