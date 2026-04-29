@@ -1,58 +1,9 @@
 [
   {
-    "dTag": "d6acea6e-7748-4186-92e4-299d0f191273",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_3_19-1773946790.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_3_19-1773946790.srt",
-    "success": true,
-    "event": {
-      "content": "",
-      "created_at": 1773946790,
-      "id": "dfe4669182da22a681416c9f73ea958eac9663dad145bbe39a124113bd04f0ee",
-      "kind": 30054,
-      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "53efa2763f60ff3c35b6b60e5b4a2b4c7e6db42b1fc01cb490556d42e7d1f903c1e5319732a2405ccb0c6f4eb102e619a86e3b6e626744bce776b0b187f2bf9f",
-      "tags": [
-        [
-          "d",
-          "d6acea6e-7748-4186-92e4-299d0f191273"
-        ],
-        [
-          "title",
-          "Ray County Commissioner's Meeting 3/19"
-        ],
-        [
-          "summary",
-          "Ray County Commissioner's meetings streaming"
-        ],
-        [
-          "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/71f5c5fd0bcb491dbbaade7973f0ac95/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-3-19"
-        ],
-        [
-          "image",
-          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
-        ],
-        [
-          "duration",
-          "0"
-        ],
-        [
-          "alt",
-          "Podcast episode: Ray County Commissioner's Meeting 3/19"
-        ],
-        [
-          "client",
-          "podstr-github-actions"
-        ],
-        [
-          "t",
-          "livestream"
-        ],
-        [
-          "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:d6acea6e-7748-4186-92e4-299d0f191273"
-        ]
-      ]
-    }
+    "dTag": "9573ed8f-9348-43d4-8dee-5fa6bf68aada",
+    "transcriptPath": "",
+    "transcriptUrl": "",
+    "success": false,
+    "error": "Failed to download: Not Found (404)"
   }
 ]
