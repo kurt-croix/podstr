@@ -208,13 +208,13 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
 function validatePodcastEpisode(event: NostrEvent, creatorPubkeyHex: string): boolean {
   if (event.kind !== PODCAST_KINDS.EPISODE) return false;
 
-  // Check for required title tag
+  // Check for required title tag (non-empty, not just whitespace/placeholder)
   const title = event.tags.find(([name]) => name === 'title')?.[1];
-  if (!title) return false;
+  if (!title || !title.trim() || title.trim().toLowerCase() === 'untitled') return false;
 
-  // Check for required audio tag
+  // Check for required audio tag (must be a valid URL)
   const audio = event.tags.find(([name]) => name === 'audio')?.[1];
-  if (!audio) return false;
+  if (!audio || !audio.trim() || !audio.startsWith('http')) return false;
 
   // Verify it's from the podcast creator
   if (event.pubkey !== creatorPubkeyHex) return false;
@@ -228,7 +228,7 @@ function validatePodcastEpisode(event: NostrEvent, creatorPubkeyHex: string): bo
 function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
 
-  const title = tags.get('title')?.[0] || 'Untitled Episode';
+  const title = tags.get('title')?.[0] || 'Episode';
   const description = tags.get('description')?.[0];
   const imageUrl = tags.get('image')?.[0];
 
@@ -546,9 +546,10 @@ async function overlayPipelineData(episodes: NostrEvent[]): Promise<NostrEvent[]
 }
 
 /**
- * Fetch podcast episodes from multiple Nostr relays
+ * Fetch raw podcast episode events from multiple Nostr relays
+ * Returns NostrEvent[] for further processing (overlay, then conversion)
  */
-async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
+async function fetchPodcastEpisodeEventsMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string): Promise<NostrEvent[]> {
   console.log('📡 Fetching podcast episodes from Nostr...');
 
   const relayPromises = relays.map(async ({url, relay}) => {
@@ -605,8 +606,16 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
   const uniqueEvents = Array.from(episodesByIdentifier.values());
   console.log(`✅ Found ${uniqueEvents.length} unique episodes from ${allResults.length} relays`);
 
-  // Convert to PodcastEpisode format and sort by publishDate (newest first)
-  const episodes = uniqueEvents
+  return uniqueEvents;
+}
+
+/**
+ * Fetch podcast episodes from multiple Nostr relays, converted to PodcastEpisode format
+ */
+async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
+  const rawEvents = await fetchPodcastEpisodeEventsMultiRelay(relays, creatorPubkeyHex);
+
+  const episodes = rawEvents
     .map(event => eventToPodcastEpisode(event))
     .filter(episode => !IGNORED_EPISODES.includes(`${episode.authorPubkey}:${episode.identifier}`));
 
@@ -747,10 +756,10 @@ async function buildRSS() {
         const overlaidEpisodes = await overlayPipelineData(cachedEpisodes);
         episodes = overlaidEpisodes.map(eventToPodcastEpisode);
       } else {
-        // Fetch episodes from multiple relays
-        const fetchedEpisodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
-        const overlaidEpisodes = await overlayPipelineData(fetchedEpisodes);
-        episodes = overlaidEpisodes.map(eventToPodcastEpisode);
+        // Fetch raw events from multiple relays, overlay pipeline data, then convert
+        const rawEvents = await fetchPodcastEpisodeEventsMultiRelay(relays, creatorPubkeyHex);
+        const overlaidEvents = await overlayPipelineData(rawEvents);
+        episodes = overlaidEvents.map(eventToPodcastEpisode);
       }
 
       // Fetch trailers from multiple relays
