@@ -17,6 +17,11 @@ on:
         required: false
         default: false
         type: boolean
+      dry_run:
+        description: 'Dry run — skip publishing to Nostr relays and AI API calls'
+        required: false
+        default: false
+        type: boolean
       test_mode:
         description: 'Enable test mode (10-minute transcription timeout)'
         required: false
@@ -115,6 +120,7 @@ jobs:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
           NBUNKSEC: ${{ secrets.NBUNKSEC }}
           RELAY_URL: "wss://nos.lol"
+          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
         if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Generate show notes
@@ -122,6 +128,7 @@ jobs:
         timeout-minutes: 30
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
         if: hashFiles('.transcript-mapping.json') != ''
 
       - name: Build RSS feed and React app
@@ -129,12 +136,15 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/main'
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main'
         with:
           path: dist
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
+        if: github.ref == 'refs/heads/main'
         id: deployment
