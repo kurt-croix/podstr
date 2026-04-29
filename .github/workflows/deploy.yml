@@ -129,6 +129,19 @@ jobs:
           DRY_RUN: ${{ github.ref != 'refs/heads/main' || github.event.inputs.dry_run == 'true' }}
         if: hashFiles('.transcript-mapping.json') != ''
 
+      - name: Commit show notes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .show-notes-mapping.json || true
+          git diff --staged --quiet || git commit -m "chore: add episode show notes"
+          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          git push
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: hashFiles('.show-notes-mapping.json') != ''
+
       - name: Update episodes with description tags
         run: npx -y tsx scripts/update-episodes-with-descriptions.ts
         env:
