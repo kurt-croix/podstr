@@ -156,9 +156,14 @@ export async function publishEvent(event: NostrEvent): Promise<boolean> {
 async function main() {
   console.log('📝 Updating episodes with description tags...');
 
+  const dryRun = process.env.DRY_RUN === 'true' || process.argv.includes('--dry-run');
+  if (dryRun) {
+    console.log('🏃 DRY RUN MODE — no events will be published to relays');
+  }
+
   const nostrPrivateKey = process.env.NOSTR_PRIVATE_KEY;
 
-  if (!nostrPrivateKey) {
+  if (!nostrPrivateKey && !dryRun) {
     console.error('❌ NOSTR_PRIVATE_KEY environment variable is required');
     process.exit(1);
   }
@@ -219,12 +224,20 @@ async function main() {
     }
 
     try {
+      if (dryRun) {
+        const descriptionPreview = noteResult.shortSummary.substring(0, 100) + '...';
+        console.log(`   🏃 DRY RUN: Would add description tag (${noteResult.shortSummary.length + noteResult.showNotes.length} chars)`);
+        console.log(`   🏃 Preview: ${descriptionPreview}`);
+        successCount++;
+        continue;
+      }
+
       const updatedEvent = await updateEpisodeWithDescription(
         event,
         noteResult.shortSummary,
         noteResult.showNotes,
         transcriptInfo?.transcriptUrl,
-        nostrPrivateKey,
+        nostrPrivateKey!,
       );
 
       console.log(`   Publishing updated event...`);
