@@ -94,6 +94,8 @@ interface FeatureConfig {
   zapsEnabled: boolean;
   longFormEnabled: boolean;
   theme: 'light' | 'dark' | 'system';
+  latestSection: 'episode' | 'article' | 'post' | 'auto';
+  recentSection: 'episode' | 'article' | 'post' | 'auto';
 }
 
 interface PodcastMeta {
@@ -182,11 +184,13 @@ async function rewriteAppConfig(features: FeatureConfig): Promise<void> {
   relayUrl: "wss://relay.ditto.pub",
   zapsEnabled: ${features.zapsEnabled},
   longFormEnabled: ${features.longFormEnabled},
+  latestSection: "${features.latestSection}",
+  recentSection: "${features.recentSection}",
 };`
   );
 
   await fs.writeFile(appPath, content, 'utf-8');
-  console.log('  ✅ Updated src/App.tsx (feature flags)');
+  console.log('  ✅ Updated src/App.tsx (feature flags & home sections)');
 }
 
 async function rewritePodcastConfig(meta: PodcastMeta): Promise<void> {
@@ -252,7 +256,24 @@ async function promptFeatures(): Promise<FeatureConfig> {
   const longFormEnabled = await confirm('Enable long-form articles?', true);
   const theme = await pickOne('Default theme:', ['light', 'dark', 'system'], 0) as FeatureConfig['theme'];
 
-  return { zapsEnabled, longFormEnabled, theme };
+  console.log('\n📋  Home Page Sections\n');
+  console.log('  The "Latest" section shows a hero card. The "Recent" section shows a list.');
+
+  const latestChoice = await pickOne(
+    'Latest section content (auto = whichever is newest):',
+    ['auto', 'episode', 'article', 'social post'],
+    0
+  );
+  const latestSection = (latestChoice === 'social post' ? 'post' : latestChoice) as FeatureConfig['latestSection'];
+
+  const recentChoice = await pickOne(
+    'Recent section content:',
+    ['episode', 'article', 'social post', 'auto'],
+    0
+  );
+  const recentSection = (recentChoice === 'social post' ? 'post' : recentChoice) as FeatureConfig['recentSection'];
+
+  return { zapsEnabled, longFormEnabled, theme, latestSection, recentSection };
 }
 
 async function promptPodcastMeta(): Promise<PodcastMeta | undefined> {

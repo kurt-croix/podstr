@@ -2,6 +2,9 @@ import { createContext } from "react";
 
 export type Theme = "dark" | "light" | "system";
 
+/** Content type for configurable home page sections */
+export type SectionContentType = 'episode' | 'article' | 'post' | 'auto';
+
 export interface AppConfig {
   /** Current theme */
   theme: Theme;
@@ -11,6 +14,10 @@ export interface AppConfig {
   zapsEnabled: boolean;
   /** Enable/disable long-form article (NIP-23) UI across the entire app */
   longFormEnabled: boolean;
+  /** Content type for the hero "Latest" section on the home page */
+  latestSection: SectionContentType;
+  /** Content type for the "Recent" list section on the home page */
+  recentSection: SectionContentType;
 }
 
 export interface AppContextType {
