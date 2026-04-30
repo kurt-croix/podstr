@@ -237,58 +237,96 @@ async function readConfigSnapshot(): Promise<SetupConfig | null> {
 // INTERACTIVE PROMPTS
 // =============================================================================
 
-async function promptColors(): Promise<ColorConfig> {
-  console.log('\n🎨  Color Configuration');
-  console.log('   Enter hex colors or press Enter to keep defaults.\n');
+/** Default config values used when no previous snapshot exists */
+const HARD_DEFAULTS: SetupConfig = {
+  colors: {
+    primary: '#2952CC',
+    secondary: '#1B9E4B',
+    accent: '#6D3FC0',
+    radius: '12',
+  },
+  features: {
+    zapsEnabled: false,
+    longFormEnabled: true,
+    theme: 'light',
+    latestSection: 'auto',
+    recentSection: 'episode',
+  },
+  podcast: {
+    title: 'My Podcast',
+    author: 'Podcaster',
+    description: 'A podcast powered by Podstr',
+    email: 'hello@example.com',
+    website: 'https://example.com',
+    creatorNpub: 'npub1...',
+    image: 'https://example.com/cover.png',
+  },
+};
 
-  const primary = await prompt('Primary color (hex)', '#2952CC');
-  const secondary = await prompt('Secondary color (hex)', '#1B9E4B');
-  const accent = await prompt('Accent color (hex)', '#6D3FC0');
-  const radius = await prompt('Border radius (px)', '12');
+async function promptColors(prev?: ColorConfig): Promise<ColorConfig> {
+  console.log('\n🎨  Color Configuration');
+  console.log('   Enter hex colors or press Enter to keep current values.\n');
+
+  const primary = await prompt('Primary color (hex)', prev?.primary || HARD_DEFAULTS.colors.primary);
+  const secondary = await prompt('Secondary color (hex)', prev?.secondary || HARD_DEFAULTS.colors.secondary);
+  const accent = await prompt('Accent color (hex)', prev?.accent || HARD_DEFAULTS.colors.accent);
+  const radius = await prompt('Border radius (px)', prev?.radius || HARD_DEFAULTS.colors.radius);
 
   return { primary, secondary, accent, radius };
 }
 
-async function promptFeatures(): Promise<FeatureConfig> {
+async function promptFeatures(prev?: FeatureConfig): Promise<FeatureConfig> {
+  const p = prev || HARD_DEFAULTS.features;
+
   console.log('\n⚙️  Feature Flags\n');
 
-  const zapsEnabled = await confirm('Enable Lightning zaps?', false);
-  const longFormEnabled = await confirm('Enable long-form articles?', true);
-  const theme = await pickOne('Default theme:', ['light', 'dark', 'system'], 0) as FeatureConfig['theme'];
+  const zapsEnabled = await confirm('Enable Lightning zaps?', p.zapsEnabled);
+  const longFormEnabled = await confirm('Enable long-form articles?', p.longFormEnabled);
+
+  const themeIdx = ['light', 'dark', 'system'].indexOf(p.theme);
+  const theme = await pickOne('Default theme:', ['light', 'dark', 'system'], themeIdx >= 0 ? themeIdx : 0) as FeatureConfig['theme'];
 
   console.log('\n📋  Home Page Sections\n');
   console.log('  The "Latest" section shows a hero card. The "Recent" section shows a list.');
 
+  const latestOptions = ['auto', 'episode', 'article', 'social post'];
+  const latestDisplay = p.latestSection === 'post' ? 'social post' : p.latestSection;
+  const latestIdx = latestOptions.indexOf(latestDisplay);
   const latestChoice = await pickOne(
     'Latest section content (auto = whichever is newest):',
-    ['auto', 'episode', 'article', 'social post'],
-    0
+    latestOptions,
+    latestIdx >= 0 ? latestIdx : 0
   );
   const latestSection = (latestChoice === 'social post' ? 'post' : latestChoice) as FeatureConfig['latestSection'];
 
+  const recentOptions = ['episode', 'article', 'social post', 'auto'];
+  const recentDisplay = p.recentSection === 'post' ? 'social post' : p.recentSection;
+  const recentIdx = recentOptions.indexOf(recentDisplay);
   const recentChoice = await pickOne(
     'Recent section content:',
-    ['episode', 'article', 'social post', 'auto'],
-    0
+    recentOptions,
+    recentIdx >= 0 ? recentIdx : 0
   );
   const recentSection = (recentChoice === 'social post' ? 'post' : recentChoice) as FeatureConfig['recentSection'];
 
   return { zapsEnabled, longFormEnabled, theme, latestSection, recentSection };
 }
 
-async function promptPodcastMeta(): Promise<PodcastMeta | undefined> {
+async function promptPodcastMeta(prev?: PodcastMeta): Promise<PodcastMeta | undefined> {
+  const p = prev || HARD_DEFAULTS.podcast;
+
   console.log('\n📻  Podcast Metadata');
   const doConfig = await confirm('Configure podcast metadata?', false);
   if (!doConfig) return undefined;
 
   console.log('');
-  const title = await prompt('Podcast title', 'My Podcast');
-  const author = await prompt('Author name', 'Podcaster');
-  const description = await prompt('Description', 'A podcast powered by Podstr');
-  const email = await prompt('Contact email', 'hello@example.com');
-  const website = await prompt('Website URL', 'https://example.com');
-  const creatorNpub = await prompt('Creator npub', 'npub1...');
-  const image = await prompt('Cover art URL', 'https://example.com/cover.png');
+  const title = await prompt('Podcast title', p.title);
+  const author = await prompt('Author name', p.author);
+  const description = await prompt('Description', p.description);
+  const email = await prompt('Contact email', p.email);
+  const website = await prompt('Website URL', p.website);
+  const creatorNpub = await prompt('Creator npub', p.creatorNpub);
+  const image = await prompt('Cover art URL', p.image);
 
   return { title, author, description, email, website, creatorNpub, image };
 }
@@ -314,9 +352,15 @@ async function main() {
     config = snapshot;
     console.log('📄 Loaded config from podstr.config.json');
   } else {
-    const colors = await promptColors();
-    const features = await promptFeatures();
-    const podcast = await promptPodcastMeta();
+    // Load previous config as defaults (if any)
+    const prev = await readConfigSnapshot();
+    if (prev) {
+      console.log('📄 Found previous config — using your past answers as defaults.');
+    }
+
+    const colors = await promptColors(prev?.colors);
+    const features = await promptFeatures(prev?.features);
+    const podcast = await promptPodcastMeta(prev?.podcast);
     config = { colors, features, podcast };
   }
 
