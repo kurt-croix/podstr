@@ -17,6 +17,7 @@ interface AppProviderProps {
 const AppConfigSchema: z.ZodType<AppConfig, z.ZodTypeDef, unknown> = z.object({
   theme: z.enum(['dark', 'light', 'system']),
   relayUrl: z.string().url(),
+  zapsEnabled: z.boolean().default(true),
 });
 
 export function AppProvider(props: AppProviderProps) {

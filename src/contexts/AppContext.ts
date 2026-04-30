@@ -7,6 +7,8 @@ export interface AppConfig {
   theme: Theme;
   /** Selected relay URL */
   relayUrl: string;
+  /** Enable/disable zap (Lightning payment) UI across the entire app */
+  zapsEnabled: boolean;
 }
 
 export interface AppContextType {

@@ -1,6 +1,7 @@
 import { useState, forwardRef } from 'react';
 import { Wallet, Plus, Trash2, Zap, Globe, WalletMinimal, CheckCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAppContext } from '@/hooks/useAppContext';
 import {
   Dialog,
   DialogContent,
@@ -206,6 +207,9 @@ const WalletContent = forwardRef<HTMLDivElement, {
 WalletContent.displayName = 'WalletContent';
 
 export function WalletModal({ children, className }: WalletModalProps) {
+  const { config } = useAppContext();
+  if (!config.zapsEnabled) return null;
+
   const [open, setOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [connectionUri, setConnectionUri] = useState('');

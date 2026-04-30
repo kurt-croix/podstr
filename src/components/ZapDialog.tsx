@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, forwardRef } from 'react';
 import { Zap, Copy, Check, ExternalLink, Sparkle, Sparkles, Star, Rocket, ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/hooks/useAppContext';
 import {
   Dialog,
   DialogContent,
@@ -237,6 +238,9 @@ ZapContent.displayName = 'ZapContent';
 
 
 export function ZapDialog({ target, children, className, onZapSuccess }: ZapDialogProps) {
+  const { config } = useAppContext();
+  if (!config.zapsEnabled) return null;
+
   const [open, setOpen] = useState(false);
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target.pubkey);
