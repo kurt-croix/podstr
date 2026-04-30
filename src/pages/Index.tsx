@@ -53,7 +53,7 @@ const Index = () => {
                   <Badge variant="secondary" className="animate-pulse-slow">New</Badge>
                 </div>
 
-                <Card className="card-hover bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/5 border-primary/20 overflow-hidden">
+                <Card className="card-hover bg-gradient-to-br from-primary/5 to-transparent border-primary/20 overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row items-start space-y-6 lg:space-y-0 lg:space-x-6">
                       {latestEpisode.imageUrl && (

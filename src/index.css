@@ -13,24 +13,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 10% 15%;
 
-    --primary: 210 80% 45%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 100% 44%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 71% 45%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 245 95% 38%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 20% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 80% 45%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 261 51% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 210 80% 45%;
+    --ring: 0 100% 44%;
 
     --radius: 0.75rem;
 
@@ -60,24 +60,24 @@
     --popover: 210 10% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 80% 55%;
-    --primary-foreground: 210 10% 8%;
+    --primary: 0 100% 54%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 71% 50%;
-    --secondary-foreground: 210 10% 8%;
+    --secondary: 245 95% 48%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 10% 15%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 210 80% 55%;
-    --accent-foreground: 210 10% 8%;
+    --accent: 261 51% 60%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217 32% 18%;
     --input: 217 32% 18%;
-    --ring: 210 80% 55%;
+    --ring: 0 100% 54%;
 
     --chart-1: 210 80% 60%;
     --chart-2: 142 71% 55%;
@@ -144,7 +144,7 @@
 
   /* Gradient text */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+    color: hsl(var(--primary));
   }
 
   /* Subtle animations */
@@ -203,11 +203,21 @@
 
   /* Button enhancements */
   .btn-primary {
-    @apply bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground font-medium px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105;
+    background-color: hsl(var(--primary));
+    color: white;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
   }
 
   .btn-secondary {
-    @apply bg-gradient-to-r from-secondary to-primary hover:from-secondary/90 hover:to-primary/90 text-secondary-foreground font-medium px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105;
+    background-color: hsl(var(--secondary));
+    color: white;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
   }
 }
 
