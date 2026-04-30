@@ -77,8 +77,11 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add -f .github/conversion-state.json || true
           git diff --staged --quiet || git commit -m "chore: update conversion state"
-          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
-          git push
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" = "main" ]; then
+            git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          fi
+          git push origin "$BRANCH"
         timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -100,8 +103,11 @@ jobs:
           git add transcripts/
           git add .transcript-mapping.json || true
           git diff --staged --quiet || git commit -m "chore: add episode transcripts"
-          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
-          git push
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" = "main" ]; then
+            git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          fi
+          git push origin "$BRANCH"
         timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -130,8 +136,11 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add .show-notes-mapping.json || true
           git diff --staged --quiet || git commit -m "chore: add episode show notes"
-          git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
-          git push
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" = "main" ]; then
+            git pull --rebase --strategy-option=ours origin main || { git rebase --abort; exit 1; }
+          fi
+          git push origin "$BRANCH"
         timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
