@@ -82,9 +82,17 @@ async function resolveRecordingFallback(episodeEvent: NostrEvent | undefined): P
 
 /**
  * Download file from URL
+ * For m3u8/HLS URLs, uses ffmpeg to download and convert.
+ * For direct URLs, uses plain fetch.
  */
 async function downloadFile(url: string, filepath: string): Promise<void> {
   console.log(`📥 Downloading: ${url}`);
+
+  // m3u8 is a playlist format — must use ffmpeg to fetch segments
+  if (url.includes('.m3u8')) {
+    await downloadHls(url, filepath);
+    return;
+  }
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -95,6 +103,25 @@ async function downloadFile(url: string, filepath: string): Promise<void> {
   await fs.writeFile(filepath, Buffer.from(buffer));
 
   console.log(`✅ Downloaded to: ${filepath}`);
+}
+
+/**
+ * Download HLS/m3u8 stream using ffmpeg
+ */
+async function downloadHls(url: string, filepath: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const cmd = `ffmpeg -i "${url}" -acodec libmp3lame -ab 128k "${filepath}" -y 2>/dev/null`;
+    console.log(`🎬 Downloading HLS stream via ffmpeg...`);
+
+    exec(cmd, (error) => {
+      if (error) {
+        reject(new Error(`ffmpeg HLS download failed: ${error.message}`));
+        return;
+      }
+      console.log(`✅ HLS downloaded to: ${filepath}`);
+      resolve();
+    });
+  });
 }
 
 /**
