@@ -1,6 +1,7 @@
 import { nip19 } from 'nostr-tools';
 import { useParams } from 'react-router-dom';
 import { EpisodePage } from '@/components/podcast/EpisodePage';
+import { ArticlePage } from '@/components/article/ArticlePage';
 import NotFound from './NotFound';
 
 export function NIP19Page() {
@@ -52,6 +53,18 @@ export function NIP19Page() {
         // This is a podcast episode - pass the addressable event parameters
         return (
           <EpisodePage
+            addressableEvent={{
+              pubkey: naddr.pubkey,
+              kind: naddr.kind,
+              identifier: naddr.identifier
+            }}
+          />
+        );
+      }
+      if (naddr.kind === 30023) {
+        // NIP-23 long-form article
+        return (
+          <ArticlePage
             addressableEvent={{
               pubkey: naddr.pubkey,
               kind: naddr.kind,
