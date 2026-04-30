@@ -22,13 +22,13 @@ export function TopHeader({ className }: TopHeaderProps) {
 
   return (
     <header className={cn(
-      "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm lg:pl-0",
+      "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm",
       className
     )}>
       <div className="container mx-auto lg:max-w-none lg:mx-0 px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Mobile Logo & Menu */}
-          <div className="flex items-center space-x-3 lg:hidden">
+          {/* Hamburger Menu + Logo */}
+          <div className="flex items-center space-x-3">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="focus-ring">
@@ -49,8 +49,8 @@ export function TopHeader({ className }: TopHeaderProps) {
             </Link>
           </div>
 
-          {/* Desktop: Login area on the right */}
-          <div className="hidden lg:block ml-auto">
+          {/* Login area */}
+          <div className="ml-auto">
             <LoginArea className="max-w-60" />
           </div>
         </div>
