@@ -28,6 +28,10 @@ const Index = () => {
   const { config } = useAppContext();
   const _currentEpisode = useState<PodcastEpisode | null>(null);
 
+  const creatorName = creator?.metadata?.name ||
+                      creator?.metadata?.display_name ||
+                      podcastConfig.podcast.author;
+
   const handlePlayLatestEpisode = () => {
     if (latestEpisode) {
       playEpisode(latestEpisode);
@@ -218,7 +222,16 @@ const Index = () => {
                 <CardTitle className="gradient-text">About This Podcast</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {podcastConfig.podcast.image && (
+                {creator?.metadata?.picture ? (
+                  <div className="relative group">
+                    <img
+                      src={creator.metadata.picture}
+                      alt={creatorName}
+                      className="w-full rounded-xl object-cover shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                ) : podcastConfig.podcast.image ? (
                   <div className="relative group">
                     <img
                       src={podcastConfig.podcast.image}
@@ -227,7 +240,7 @@ const Index = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
-                )}
+                ) : null}
 
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {podcastConfig.podcast.description}
