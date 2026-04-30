@@ -66,7 +66,7 @@ export async function updateEpisodeWithTranscript(
   return signer.signEvent({
     kind: event.kind,
     content: event.content,
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: event.created_at,
     tags: newTags,
   });
 }
