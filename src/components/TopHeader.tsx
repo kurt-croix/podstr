@@ -22,7 +22,7 @@ export function TopHeader({ className }: TopHeaderProps) {
 
   return (
     <header className={cn(
-      "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm lg:pl-0",
+      "border-b border-crimson/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm lg:pl-0",
       className
     )}>
       <div className="container mx-auto lg:max-w-none lg:mx-0 px-4 py-4">
@@ -42,8 +42,8 @@ export function TopHeader({ className }: TopHeaderProps) {
             </Sheet>
 
             <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-              <Headphones className="w-6 h-6 text-primary" />
-              <h1 className="text-lg font-bold gradient-text truncate">
+              <Headphones className="w-6 h-6 text-crimson" />
+              <h1 className="text-lg font-bold text-crimson font-serif truncate">
                 {podcastConfig.podcast.title}
               </h1>
             </Link>

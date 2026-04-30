@@ -21,6 +21,24 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
+				serif: ['Playfair Display Variable', 'Playfair Display', 'Georgia', 'serif'],
+			},
+			colors: {
+				navy: {
+					DEFAULT: 'hsl(215 65% 12%)',
+					light: 'hsl(215 50% 20%)',
+					dark: 'hsl(215 70% 8%)',
+				},
+				crimson: {
+					DEFAULT: 'hsl(348 75% 45%)',
+					light: 'hsl(348 70% 55%)',
+					dark: 'hsl(348 80% 35%)',
+				},
+				gold: {
+					DEFAULT: 'hsl(43 55% 53%)',
+					light: 'hsl(43 60% 65%)',
+					dark: 'hsl(43 50% 40%)',
+				},
 			},
 		},
 		extend: {

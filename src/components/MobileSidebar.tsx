@@ -68,23 +68,18 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-navy">
       {/* Logo */}
-      <div className="p-6 border-b border-border">
-        <Link 
-          to="/" 
-          className="flex items-center space-x-3 hover:opacity-80 transition-opacity group"
+      <div className="p-6 border-b border-gold/15">
+        <Link
+          to="/"
+          className="flex items-center space-x-3 hover:opacity-90 transition-opacity group"
           onClick={onNavigate}
         >
-          <div className="relative">
-            <Headphones className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-200" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full animate-pulse-slow"></div>
-          </div>
+          <Headphones className="w-8 h-8 text-gold group-hover:scale-110 transition-transform duration-200" />
           <div>
-            <h1 className="text-lg font-bold gradient-text truncate">{podcastConfig.podcast.title}</h1>
-            <p className="text-xs text-muted-foreground">
-              Powered by Nostr
-            </p>
+            <h1 className="text-lg font-bold text-white font-serif truncate">{podcastConfig.podcast.title}</h1>
+            <p className="text-xs text-gold/60">Proof Over Promises</p>
           </div>
         </Link>
       </div>
@@ -92,8 +87,8 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
         {/* Main Navigation */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground px-3 mb-3">Navigation</h3>
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-gold/50 px-3 mb-3 uppercase tracking-wider">Navigate</h3>
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -101,19 +96,19 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
             return (
               <Button
                 key={item.path}
-                variant={active ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 asChild
                 className={cn(
-                  "w-full justify-start h-auto py-3 px-3 focus-ring transition-all duration-200",
-                  active && "bg-secondary text-secondary-foreground shadow-sm"
+                  "w-full justify-start h-auto py-3 px-3 transition-all duration-200 text-white/70 hover:text-white hover:bg-white/10",
+                  active && "bg-gold/15 text-gold shadow-sm border-l-2 border-gold"
                 )}
               >
                 <Link to={item.path} className="flex items-start space-x-3" onClick={onNavigate}>
                   <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" />
                   <div className="text-left min-w-0">
                     <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+                    <div className="text-xs text-white/40 truncate">{item.description}</div>
                   </div>
                 </Link>
               </Button>
@@ -122,8 +117,8 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
         </div>
 
         {/* Secondary Navigation */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground px-3 mb-3">More</h3>
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-gold/50 px-3 mb-3 uppercase tracking-wider">More</h3>
           {secondaryItems.map((item) => {
             const Icon = item.icon;
             const active = !item.external && isActive(item.path);
@@ -131,12 +126,12 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
             return (
               <Button
                 key={item.path}
-                variant={active ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 asChild
                 className={cn(
-                  "w-full justify-start h-auto py-3 px-3 focus-ring",
-                  active && "bg-secondary text-secondary-foreground shadow-sm"
+                  "w-full justify-start h-auto py-3 px-3 transition-all duration-200 text-white/70 hover:text-white hover:bg-white/10",
+                  active && "bg-gold/15 text-gold shadow-sm border-l-2 border-gold"
                 )}
               >
                 {item.external ? (
@@ -150,7 +145,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
                     <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" />
                     <div className="text-left min-w-0">
                       <div className="font-medium">{item.label}</div>
-                      <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+                      <div className="text-xs text-white/40 truncate">{item.description}</div>
                     </div>
                   </a>
                 ) : (
@@ -158,7 +153,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
                     <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" />
                     <div className="text-left min-w-0">
                       <div className="font-medium">{item.label}</div>
-                      <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+                      <div className="text-xs text-white/40 truncate">{item.description}</div>
                     </div>
                   </Link>
                 )}
@@ -169,18 +164,18 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
 
         {/* Creator Studio */}
         {isCreator && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground px-3 mb-3">Creator</h3>
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium text-gold/50 px-3 mb-3 uppercase tracking-wider">Creator</h3>
             <Button
               size="sm"
               asChild
-              className="w-full justify-start h-auto py-3 px-3 btn-secondary focus-ring"
+              className="w-full justify-start h-auto py-3 px-3 bg-gold/20 hover:bg-gold/30 text-gold transition-all"
             >
               <Link to="/studio" className="flex items-start space-x-3" onClick={onNavigate}>
                 <Settings className="w-5 h-5 mt-0.5 flex-shrink-0" />
                 <div className="text-left min-w-0">
                   <div className="font-medium">Studio</div>
-                  <div className="text-xs text-secondary-foreground/70 truncate">Creator tools</div>
+                  <div className="text-xs text-gold/60 truncate">Creator tools</div>
                 </div>
               </Link>
             </Button>
@@ -189,9 +184,9 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       </nav>
 
       {/* Login Area at bottom */}
-      <div className="p-4 border-t bg-muted/30">
+      <div className="p-4 border-t border-gold/15">
         <div className="flex flex-col space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Account</h3>
+          <h3 className="text-sm font-medium text-gold/50">Account</h3>
           <LoginArea className="w-full" />
         </div>
       </div>

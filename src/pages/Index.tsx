@@ -51,7 +51,7 @@ const Index = () => {
                   <Badge variant="secondary" className="animate-pulse-slow">New</Badge>
                 </div>
 
-                <Card className="card-hover bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/5 border-primary/20 overflow-hidden">
+                <Card className="card-hover bg-gradient-to-br from-crimson/5 via-gold/5 to-crimson/5 border-crimson/20 overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row items-start space-y-6 lg:space-y-0 lg:space-x-6">
                       {latestEpisode.imageUrl && (
@@ -304,12 +304,12 @@ const Index = () => {
                 <p className="text-xs text-muted-foreground">
                   Vibed with{' '}
                   <a
-                    href="https://soapbox.pub/mkstack"
+                    href="https://shakespeare.diy"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline"
+                    className="text-crimson hover:underline"
                   >
-                    MKStack
+                    Shakespeare
                   </a>
                 </p>
               </CardContent>
