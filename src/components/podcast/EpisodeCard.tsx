@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { NoteContent } from '@/components/NoteContent';
+import { ArticleContent } from '@/components/article/ArticleContent';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Link } from 'react-router-dom';
@@ -177,14 +178,11 @@ export function EpisodeCard({
 
       <CardContent className="pt-0">
         {episode.description && (
-          <div className="mb-4 line-clamp-3">
-            <div className="text-sm text-muted-foreground prose prose-sm max-w-none">
-              <NoteContent
-                event={{ ...episodeEvent, content: episode.description }}
-                className="text-sm"
-                showLinkPreviews={false}
-              />
-            </div>
+          <div className="mb-4">
+            <ArticleContent
+              content={episode.description.length > 200 ? episode.description.slice(0, 200) + '…' : episode.description}
+              className="text-sm prose-sm"
+            />
           </div>
         )}
 

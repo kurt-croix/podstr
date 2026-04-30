@@ -14,7 +14,7 @@ import { PostCard } from '@/components/social/PostCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLatestEpisode } from '@/hooks/usePodcastEpisodes';
 import { useArticles } from '@/hooks/useArticles';
-import { useCreatorNotes } from '@/hooks/useCreatorPosts';
+import { useCreatorPosts } from '@/hooks/useCreatorPosts';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -22,6 +22,8 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useResolvedContentType } from '@/hooks/useResolvedContentType';
 import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
+import { encodeEpisodeAsNaddr } from '@/lib/nip19Utils';
+import { ArticleContent } from '@/components/article/ArticleContent';
 
 // Map content types to display labels and links
 const SECTION_META = {
@@ -33,7 +35,8 @@ const SECTION_META = {
 const Index = () => {
   const { data: latestEpisode } = useLatestEpisode();
   const { data: articles } = useArticles();
-  const { data: posts } = useCreatorNotes(5);
+  const { data: postsData } = useCreatorPosts(10);
+  const posts = postsData?.pages?.flatMap(page => page) ?? [];
   const podcastConfig = usePodcastConfig();
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
   const { user } = useCurrentUser();
@@ -225,7 +228,7 @@ const Index = () => {
             {/* Podcast Info */}
             <Card className="card-hover border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
               <CardHeader>
-                <CardTitle className="gradient-text">About This Podcast</CardTitle>
+                <CardTitle className="gradient-text">About</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {creator?.metadata?.picture ? (
@@ -380,60 +383,67 @@ function LatestEpisodeHero({ episode, onPlay, zapsEnabled, user }: {
   zapsEnabled: boolean;
   user: ReturnType<typeof useCurrentUser>['user'];
 }) {
+  const episodeNaddr = encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier);
+
   return (
-    <Card className="card-hover bg-gradient-to-br from-primary/5 to-transparent border-primary/20 overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex flex-col lg:flex-row items-start space-y-6 lg:space-y-0 lg:space-x-6">
-          {episode.imageUrl && (
-            <div className="relative group">
-              <img
-                src={episode.imageUrl}
-                alt={episode.title}
-                className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl object-cover flex-shrink-0 shadow-lg group-hover:shadow-xl transition-shadow duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-          )}
-
-          <div className="flex-1 min-w-0 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {episode.episodeNumber && (
-                <Badge variant="outline" className="border-primary/30 text-primary">
-                  Episode {episode.episodeNumber}
-                </Badge>
-              )}
-              {episode.explicit && (
-                <Badge variant="destructive" className="animate-pulse">Explicit</Badge>
-              )}
-            </div>
-
-            <h3 className="text-2xl lg:text-3xl font-bold line-clamp-2 leading-tight">
-              {episode.title}
-            </h3>
-
-            {episode.description && (
-              <p className="text-muted-foreground mb-4 line-clamp-3 leading-relaxed">
-                {episode.description}
-              </p>
+    <Link to={`/${episodeNaddr}`} className="block group">
+      <Card className="card-hover bg-gradient-to-br from-primary/5 to-transparent border-primary/20 overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col lg:flex-row items-start space-y-6 lg:space-y-0 lg:space-x-6">
+            {episode.imageUrl && (
+              <div className="relative group/img">
+                <img
+                  src={episode.imageUrl}
+                  alt={episode.title}
+                  className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl object-cover flex-shrink-0 shadow-lg group/img:shadow-xl transition-shadow duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover/img:opacity-100 transition-opacity duration-300"></div>
+              </div>
             )}
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <Button onClick={onPlay} className="btn-primary focus-ring">
-                <Headphones className="w-4 h-4 mr-2" />
-                Listen Now
-              </Button>
+            <div className="flex-1 min-w-0 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {episode.episodeNumber && (
+                  <Badge variant="outline" className="border-primary/30 text-primary">
+                    Episode {episode.episodeNumber}
+                  </Badge>
+                )}
+                {episode.explicit && (
+                  <Badge variant="destructive" className="animate-pulse">Explicit</Badge>
+                )}
+              </div>
 
-              {zapsEnabled && user && episode.totalSats && episode.totalSats > 0 && (
-                <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full text-sm">
-                  <Zap className="w-3 h-3 text-primary" />
-                  <span className="font-medium">{episode.totalSats.toLocaleString()} sats</span>
+              <h3 className="text-2xl lg:text-3xl font-bold line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                {episode.title}
+              </h3>
+
+              {episode.description && (
+                <div className="text-muted-foreground mb-4 leading-relaxed">
+                  <ArticleContent
+                    content={episode.description.length > 200 ? episode.description.slice(0, 200) + '…' : episode.description}
+                    className="text-sm prose-sm"
+                  />
                 </div>
               )}
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4" onClick={(e) => e.stopPropagation()}>
+                <Button onClick={(e) => { e.preventDefault(); onPlay(); }} className="btn-primary focus-ring">
+                  <Headphones className="w-4 h-4 mr-2" />
+                  Listen Now
+                </Button>
+
+                {zapsEnabled && user && episode.totalSats && episode.totalSats > 0 && (
+                  <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full text-sm">
+                    <Zap className="w-3 h-3 text-primary" />
+                    <span className="font-medium">{episode.totalSats.toLocaleString()} sats</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 

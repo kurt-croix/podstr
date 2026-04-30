@@ -38,8 +38,8 @@ const defaultConfig: AppConfig = {
   relayUrl: "wss://relay.ditto.pub",
   zapsEnabled: false,
   longFormEnabled: true,
-  latestSection: "auto",
-  recentSection: "episode",
+  latestSection: "episode",
+  recentSection: "post",
 };
 
 const presetRelays = [
