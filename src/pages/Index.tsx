@@ -118,7 +118,7 @@ const Index = () => {
             {/* Quick Navigation */}
             <section className="animate-fade-in-up">
               <h2 className="text-3xl font-bold mb-6 gradient-text">Explore</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Link to="/episodes" className="group">
                   <Card className="card-hover border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-transparent h-full">
                     <CardContent className="p-6 text-center space-y-4">
