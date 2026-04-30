@@ -1,9 +1,58 @@
 [
   {
     "dTag": "9573ed8f-9348-43d4-8dee-5fa6bf68aada",
-    "transcriptPath": "",
-    "transcriptUrl": "",
-    "success": false,
-    "error": "WhisperX failed with exit code 1"
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_29-1777484807.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_29-1777484807.srt",
+    "success": true,
+    "event": {
+      "content": "",
+      "created_at": 1777484807,
+      "id": "6e5d0895b2113a69ae77b2cfb6507288312139668a979ed5cb82fa589cdb9cd7",
+      "kind": 30054,
+      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
+      "sig": "8782caffaee58f1c7e1cfac9efec6bff656973fefb4f0385df3a3049a0d663138988797ebb02b10ba8871ddb67ea41b2716f4b267af0682b6bf77ec4f19a16a2",
+      "tags": [
+        [
+          "d",
+          "9573ed8f-9348-43d4-8dee-5fa6bf68aada"
+        ],
+        [
+          "title",
+          "Ray County Commissioner's Meeting 4/29"
+        ],
+        [
+          "summary",
+          "Ray County Commissioner's meetings streaming"
+        ],
+        [
+          "audio",
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/ff7f18770f730df738faeb699b77f31c/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-29"
+        ],
+        [
+          "image",
+          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
+        ],
+        [
+          "duration",
+          "0"
+        ],
+        [
+          "alt",
+          "Podcast episode: Ray County Commissioner's Meeting 4/29"
+        ],
+        [
+          "client",
+          "podstr-github-actions"
+        ],
+        [
+          "t",
+          "livestream"
+        ],
+        [
+          "livestream",
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:9573ed8f-9348-43d4-8dee-5fa6bf68aada"
+        ]
+      ]
+    }
   }
 ]
