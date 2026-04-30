@@ -28,6 +28,10 @@ const Index = () => {
   const { config } = useAppContext();
   const _currentEpisode = useState<PodcastEpisode | null>(null);
 
+  const creatorName = creator?.metadata?.name ||
+                      creator?.metadata?.display_name ||
+                      podcastConfig.podcast.author;
+
   const handlePlayLatestEpisode = () => {
     if (latestEpisode) {
       playEpisode(latestEpisode);
@@ -152,13 +156,13 @@ const Index = () => {
                 )}
 
                 <Link to="/community" className="group">
-                  <Card className="card-hover border-secondary/20 hover:border-secondary/40 bg-gradient-to-br from-secondary/5 to-transparent h-full">
+                  <Card className="card-hover border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-transparent h-full">
                     <CardContent className="p-6 text-center space-y-4">
                       <div className="relative">
-                        <Users className="w-12 h-12 mx-auto text-secondary group-hover:scale-110 transition-transform duration-300" />
-                        <div className="absolute inset-0 bg-secondary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <Users className="w-12 h-12 mx-auto text-primary group-hover:scale-110 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2 group-hover:text-secondary transition-colors">Community</h3>
+                      <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">Community</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         Engage with listeners and top supporters
                       </p>
@@ -218,7 +222,16 @@ const Index = () => {
                 <CardTitle className="gradient-text">About This Podcast</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {podcastConfig.podcast.image && (
+                {creator?.metadata?.picture ? (
+                  <div className="relative group">
+                    <img
+                      src={creator.metadata.picture}
+                      alt={creatorName}
+                      className="w-full rounded-xl object-cover shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                ) : podcastConfig.podcast.image ? (
                   <div className="relative group">
                     <img
                       src={podcastConfig.podcast.image}
@@ -227,7 +240,7 @@ const Index = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
-                )}
+                ) : null}
 
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {podcastConfig.podcast.description}
@@ -266,7 +279,7 @@ const Index = () => {
             </Card>
 
             {/* Subscribe Links */}
-            <Card className="card-hover border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
+            <Card className="card-hover border-accent/20 bg-gradient-to-br from-accent/5 to-transparent">
               <CardHeader>
                 <CardTitle className="gradient-text">Subscribe</CardTitle>
               </CardHeader>

@@ -1,49 +1,65 @@
 import { useSeoMeta } from '@unhead/react';
-import { MessageSquare, TrendingUp } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { MessageSquare, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Layout } from '@/components/Layout';
 import { PostCard } from '@/components/social/PostCard';
 import { ConversationThread } from '@/components/social/ConversationThread';
 import { NoteComposer } from '@/components/social/NoteComposer';
-import { InfiniteScroll } from '@/components/ui/InfiniteScroll';
 import { useCreatorPosts, useCreatorRepliesTab } from '@/hooks/useCreatorPosts';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCreatorPubkeyHex, isPodcastCreator, PODCAST_CONFIG } from '@/lib/podcastConfig';
 import { genUserName } from '@/lib/genUserName';
+import { cn } from '@/lib/utils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
+const PAGE_SIZE = 10;
+
 const SocialFeed = () => {
+  const [notesPage, setNotesPage] = useState(1);
+  const [repliesPage, setRepliesPage] = useState(1);
+
   const {
     data: postsData,
-    fetchNextPage: fetchNextPosts,
-    hasNextPage: hasNextPosts,
     isFetching: isFetchingPosts,
     isLoading: postsLoading,
     error: postsError,
-  } = useCreatorPosts(20);
+  } = useCreatorPosts(50); // Fetch more to have enough for pagination
 
   const {
     data: repliesData,
-    fetchNextPage: fetchNextReplies,
-    hasNextPage: hasNextReplies,
     isFetching: isFetchingReplies,
     isLoading: repliesLoading,
-  } = useCreatorRepliesTab(20);
+  } = useCreatorRepliesTab(50);
 
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
 
-  // Check if the current user is the podcast creator
   const isCreator = user ? isPodcastCreator(user.pubkey) : false;
 
-  // Flatten infinite query data for rendering
-  const notesColumnData = postsData?.pages.flat() || [];
-  const repliesColumnData = repliesData?.pages.flat() || [];
+  // Flatten all data
+  const allNotes = postsData?.pages.flat() || [];
+  const allReplies = repliesData?.pages.flat() || [];
+
+  // Paginate notes
+  const totalNotesPages = Math.ceil(allNotes.length / PAGE_SIZE);
+  const paginatedNotes = useMemo(() => {
+    const start = (notesPage - 1) * PAGE_SIZE;
+    return allNotes.slice(start, start + PAGE_SIZE);
+  }, [allNotes, notesPage]);
+
+  // Paginate replies
+  const totalRepliesPages = Math.ceil(allReplies.length / PAGE_SIZE);
+  const paginatedReplies = useMemo(() => {
+    const start = (repliesPage - 1) * PAGE_SIZE;
+    return allReplies.slice(start, start + PAGE_SIZE);
+  }, [allReplies, repliesPage]);
 
   const creatorName = creator?.metadata?.name ||
                      creator?.metadata?.display_name ||
@@ -107,6 +123,44 @@ const SocialFeed = () => {
     </div>
   );
 
+  /** Pagination controls */
+  const PaginationControls = ({
+    page,
+    totalPages,
+    setPage,
+  }: {
+    page: number;
+    totalPages: number;
+    setPage: (p: number) => void;
+  }) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 mt-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPage(page - 1)}
+          disabled={page <= 1}
+        >
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Prev
+        </Button>
+        <span className="text-sm text-muted-foreground px-3">
+          Page {page} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPage(page + 1)}
+          disabled={page >= totalPages}
+        >
+          Next
+          <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -118,19 +172,17 @@ const SocialFeed = () => {
             </p>
           </div>
 
-          {/* Note Composer - Only show for the creator */}
+          {/* Note Composer — only show for the creator */}
           {isCreator && (
             <div className="mb-8">
-              <NoteComposer 
+              <NoteComposer
                 placeholder="Share your thoughts with your audience..."
                 onSuccess={(newEvent) => {
-                  // Optimistically add the new note to the top of the feed
                   queryClient.setQueryData(['creator-posts'], (oldData: unknown) => {
                     if (!oldData || typeof oldData !== 'object' || !('pages' in oldData)) return oldData;
-                    
+
                     const typedOldData = oldData as { pages: NostrEvent[][] };
-                    
-                    // Create the optimistic note
+
                     const optimisticNote: NostrEvent = {
                       id: newEvent?.id || `temp-${Date.now()}`,
                       kind: 1,
@@ -141,7 +193,6 @@ const SocialFeed = () => {
                       sig: newEvent?.sig || ''
                     };
 
-                    // Add to the first page
                     const updatedPages = [...typedOldData.pages];
                     if (updatedPages[0]) {
                       updatedPages[0] = [optimisticNote, ...updatedPages[0]];
@@ -155,12 +206,13 @@ const SocialFeed = () => {
                     };
                   });
 
-                  // Then refresh from network to get the confirmed version
                   setTimeout(() => {
-                    queryClient.invalidateQueries({ 
-                      queryKey: ['creator-posts'] 
+                    queryClient.invalidateQueries({
+                      queryKey: ['creator-posts']
                     });
                   }, 1000);
+
+                  setNotesPage(1); // Jump to first page to see new post
                 }}
               />
             </div>
@@ -181,22 +233,37 @@ const SocialFeed = () => {
             <TabsContent value="notes" className="space-y-4">
               {postsError && <ErrorState />}
 
-              {postsLoading ? (
+              {postsLoading || isFetchingPosts ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
                     <PostSkeleton key={i} />
                   ))}
                 </div>
-              ) : notesColumnData.length > 0 ? (
-                <InfiniteScroll
-                  hasMore={!!hasNextPosts}
-                  isLoading={isFetchingPosts}
-                  onLoadMore={fetchNextPosts}
-                >
-                  {notesColumnData.map((event) => (
-                    <PostCard key={event.id} event={event} />
-                  ))}
-                </InfiniteScroll>
+              ) : paginatedNotes.length > 0 ? (
+                <>
+                  {paginatedNotes.map((event, index) => {
+                    // Alternate between primary and accent card styling
+                    const isAccent = index % 2 === 1;
+                    return (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "rounded-lg transition-all duration-200",
+                          isAccent
+                            ? "border border-accent/20 bg-gradient-to-br from-accent/5 to-transparent"
+                            : "border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent"
+                        )}
+                      >
+                        <PostCard event={event} className="border-0 shadow-none bg-transparent" />
+                      </div>
+                    );
+                  })}
+                  <PaginationControls
+                    page={notesPage}
+                    totalPages={totalNotesPages}
+                    setPage={setNotesPage}
+                  />
+                </>
               ) : (
                 <EmptyState
                   message="No notes found"
@@ -206,22 +273,36 @@ const SocialFeed = () => {
             </TabsContent>
 
             <TabsContent value="replies" className="space-y-4">
-              {repliesLoading ? (
+              {repliesLoading || isFetchingReplies ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
                     <PostSkeleton key={i} />
                   ))}
                 </div>
-              ) : repliesColumnData.length > 0 ? (
-                <InfiniteScroll
-                  hasMore={!!hasNextReplies}
-                  isLoading={isFetchingReplies}
-                  onLoadMore={fetchNextReplies}
-                >
-                  {repliesColumnData.map((event) => (
-                    <ConversationThread key={event.id} event={event} />
-                  ))}
-                </InfiniteScroll>
+              ) : paginatedReplies.length > 0 ? (
+                <>
+                  {paginatedReplies.map((event, index) => {
+                    const isAccent = index % 2 === 1;
+                    return (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "rounded-lg transition-all duration-200",
+                          isAccent
+                            ? "border border-accent/20 bg-gradient-to-br from-accent/5 to-transparent"
+                            : "border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent"
+                        )}
+                      >
+                        <ConversationThread event={event} />
+                      </div>
+                    );
+                  })}
+                  <PaginationControls
+                    page={repliesPage}
+                    totalPages={totalRepliesPages}
+                    setPage={setRepliesPage}
+                  />
+                </>
               ) : (
                 <EmptyState
                   message="No replies found"
