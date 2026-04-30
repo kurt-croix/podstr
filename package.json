@@ -4,6 +4,7 @@
   "version": "0.6.1",
   "type": "module",
   "scripts": {
+    "setup": "tsx scripts/setup.ts",
     "dev": "vite",
     "build": "npm ci && vite build && cp dist/index.html dist/404.html && tsx scripts/build-rss.ts",
     "build:gh-pages": "npm ci && vite build && cp dist/index.html dist/404.html && tsx scripts/build-rss-hybrid.ts",
