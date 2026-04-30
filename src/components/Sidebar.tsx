@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen } from 'lucide-react';
+import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { useAppContext } from '@/hooks/useAppContext';
+import { useTheme } from '@/hooks/useTheme';
 import { isPodcastCreator } from '@/lib/podcastConfig';
 import { cn } from '@/lib/utils';
 
@@ -193,6 +194,34 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         )}
       </nav>
+
+      {/* Theme toggle at bottom */}
+      <div className="p-4 border-t">
+        <ThemeToggleButton />
+      </div>
     </aside>
+  );
+}
+
+/** Compact sun/moon theme toggle button */
+function ThemeToggleButton() {
+  const { theme, setTheme } = useTheme();
+
+  const toggle = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const Icon = theme === 'dark' ? Sun : Moon;
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={toggle}
+      className="w-full justify-start h-auto py-2 px-3 focus-ring"
+    >
+      <Icon className="w-4 h-4 mr-3 flex-shrink-0" />
+      <span className="text-sm">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+    </Button>
   );
 }

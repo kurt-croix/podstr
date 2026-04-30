@@ -43,7 +43,7 @@ function hslStr(hsl: { h: number; s: number; l: number }): string {
 function darkAdjust(hsl: { h: number; s: number; l: number }, type: 'bg' | 'fg' | 'brand'): string {
   let { h, s, l } = hsl;
   if (type === 'bg') l = Math.max(5, 100 - l);
-  else if (type === 'fg') l = Math.min(98, 100 - l);
+  else if (type === 'fg') return '0 0% 100%'; // foreground always white (for button text)
   else l = Math.min(65, l + 10); // brand colors: slightly brighter
   return `${h} ${s}% ${l}%`;
 }
@@ -135,11 +135,11 @@ async function rewriteCSS(colors: ColorConfig): Promise<void> {
   // Dark mode (.dark)
   const darkVars: Record<string, string> = {
     '--primary': darkAdjust(primary, 'brand'),
-    '--primary-foreground': darkAdjust(primary, 'bg'),
+    '--primary-foreground': '0 0% 100%',
     '--secondary': darkAdjust(secondary, 'brand'),
-    '--secondary-foreground': darkAdjust(secondary, 'bg'),
+    '--secondary-foreground': '0 0% 100%',
     '--accent': darkAdjust(accent, 'brand'),
-    '--accent-foreground': darkAdjust(accent, 'bg'),
+    '--accent-foreground': '0 0% 100%',
     '--ring': darkAdjust(primary, 'brand'),
   };
 
