@@ -3,6 +3,7 @@ import { useZaps } from '@/hooks/useZaps';
 import { useWallet } from '@/hooks/useWallet';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useAppContext } from '@/hooks/useAppContext';
 import { Button } from '@/components/ui/button';
 import { Zap } from 'lucide-react';
 import type { Event } from 'nostr-tools';
@@ -24,6 +25,9 @@ export function ZapButton({
   onZapSuccess,
   hideWhenEmpty = false
 }: ZapButtonProps) {
+  const { config } = useAppContext();
+  if (!config.zapsEnabled) return null;
+
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target?.pubkey || '');
   const { webln, activeNWC } = useWallet();

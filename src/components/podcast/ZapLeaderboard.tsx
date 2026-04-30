@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useAppContext } from '@/hooks/useAppContext';
 import { useZapLeaderboard } from '@/hooks/useZapLeaderboard';
 import { genUserName } from '@/lib/genUserName';
 import type { ZapLeaderboardEntry } from '@/types/podcast';
@@ -108,11 +109,14 @@ function LeaderboardSkeleton() {
   );
 }
 
-export function ZapLeaderboard({ 
-  limit = 10, 
+export function ZapLeaderboard({
+  limit = 10,
   className,
-  showTitle = true 
+  showTitle = true
 }: ZapLeaderboardProps) {
+  const { config } = useAppContext();
+  if (!config.zapsEnabled) return null;
+
   const { data: leaderboard, isLoading, error } = useZapLeaderboard(limit);
 
   if (error) {

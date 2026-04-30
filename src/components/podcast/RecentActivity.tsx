@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useAppContext } from '@/hooks/useAppContext';
 import { useRecentZapActivity } from '@/hooks/useZapLeaderboard';
 import { usePodcastEpisode } from '@/hooks/usePodcastEpisodes';
 import { genUserName } from '@/lib/genUserName';
@@ -109,11 +110,14 @@ interface RecentActivityProps {
   showTitle?: boolean;
 }
 
-export function RecentActivity({ 
-  limit = 20, 
+export function RecentActivity({
+  limit = 20,
   className,
-  showTitle = true 
+  showTitle = true
 }: RecentActivityProps) {
+  const { config } = useAppContext();
+  if (!config.zapsEnabled) return null;
+
   const { data: recentZaps, isLoading, error } = useRecentZapActivity(limit);
 
   if (error) {
