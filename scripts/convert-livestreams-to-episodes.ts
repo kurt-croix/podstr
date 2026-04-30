@@ -256,6 +256,13 @@ async function createBatchEpisode(
     return ['livestream', `30311:${stream.pubkey}:${dTag}`];
   });
 
+  // Use earliest livestream start time as episode timestamp
+  const batchTimestamp = livestreams.reduce((earliest, stream) => {
+    const starts = stream.tags.find(([name]) => name === 'starts')?.[1];
+    const ts = starts ? parseInt(starts) : stream.created_at;
+    return ts < earliest ? ts : earliest;
+  }, Date.now() / 1000);
+
   // Create signer
   const signerInfo = createSigner(privateKey, nbunksec);
   const dTag = `batch-livestreams-${Date.now()}`;
@@ -263,7 +270,7 @@ async function createBatchEpisode(
   const event = await signerInfo.signer.signEvent({
     kind: 30054,
     content: '',
-    created_at: Math.floor(Date.now() / 1000), // Current timestamp
+    created_at: Math.floor(batchTimestamp),
     tags: [
       ['d', dTag],
       ['title', title],
@@ -306,13 +313,17 @@ async function createSingleEpisode(
   const summary = livestream.tags.find(([name]) => name === 'summary')?.[1] || '';
   const image = livestream.tags.find(([name]) => name === 'image')?.[1] || '';
 
+  // Use livestream start time as episode timestamp
+  const startsTag = livestream.tags.find(([name]) => name === 'starts')?.[1];
+  const episodeTimestamp = startsTag ? parseInt(startsTag) : livestream.created_at;
+
   // Create signer
   const signerInfo = createSigner(privateKey, nbunksec);
 
   const event = await signerInfo.signer.signEvent({
     kind: 30054,
     content: '',
-    created_at: Math.floor(Date.now() / 1000), // Current timestamp
+    created_at: episodeTimestamp,
     tags: [
       ['d', dTag],
       ['title', title],
