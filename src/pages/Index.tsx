@@ -1,7 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Headphones, Rss, Zap, Users, MessageSquare } from 'lucide-react';
+import { Headphones, Rss, Zap, Users, MessageSquare, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAppContext } from '@/hooks/useAppContext';
 import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
 
 const Index = () => {
@@ -24,6 +25,7 @@ const Index = () => {
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
   const { user } = useCurrentUser();
   const { playEpisode } = useAudioPlayer();
+  const { config } = useAppContext();
   const _currentEpisode = useState<PodcastEpisode | null>(null);
 
   const handlePlayLatestEpisode = () => {
@@ -93,16 +95,18 @@ const Index = () => {
                             Listen Now
                           </Button>
 
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            {user && latestEpisode.totalSats && latestEpisode.totalSats > 0 && (
-                              <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full">
-                                <Zap className="w-3 h-3 text-primary" />
-                                <span className="font-medium">
-                                  {latestEpisode.totalSats.toLocaleString()} sats
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                          {config.zapsEnabled && (
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              {user && latestEpisode.totalSats && latestEpisode.totalSats > 0 && (
+                                <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full">
+                                  <Zap className="w-3 h-3 text-primary" />
+                                  <span className="font-medium">
+                                    {latestEpisode.totalSats.toLocaleString()} sats
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -129,6 +133,23 @@ const Index = () => {
                     </CardContent>
                   </Card>
                 </Link>
+
+                {config.longFormEnabled && (
+                  <Link to="/articles" className="group">
+                    <Card className="card-hover border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-transparent h-full">
+                      <CardContent className="p-6 text-center space-y-4">
+                        <div className="relative">
+                          <BookOpen className="w-12 h-12 mx-auto text-primary group-hover:scale-110 transition-transform duration-300" />
+                          <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">Articles</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          Long-form posts and articles
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )}
 
                 <Link to="/community" className="group">
                   <Card className="card-hover border-secondary/20 hover:border-secondary/40 bg-gradient-to-br from-secondary/5 to-transparent h-full">
@@ -266,37 +287,39 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Zap Leaderboard */}
-            <ZapLeaderboard limit={5} />
+            {/* Zap sections — only rendered when zaps enabled */}
+            {config.zapsEnabled && (
+              <>
+                <ZapLeaderboard limit={5} />
+                <RecentActivity limit={10} />
 
-            {/* Recent Activity */}
-            <RecentActivity limit={10} />
+                {/* Support */}
+                <Card className="card-hover border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardHeader>
+                    <CardTitle className="gradient-text">Support the Show</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Support this podcast by zapping episodes, sharing with friends, and engaging with the community.
+                    </p>
 
-            {/* Support */}
-            <Card className="card-hover border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-              <CardHeader>
-                <CardTitle className="gradient-text">Support the Show</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Support this podcast by zapping episodes, sharing with friends, and engaging with the community.
-                </p>
-
-                {creator?.event && user && (creator.metadata?.lud16 || creator.metadata?.lud06) ? (
-                  <ZapDialog target={creator.event}>
-                    <Button variant="outline" className="w-full btn-primary focus-ring">
-                      <Zap className="w-4 h-4 mr-2 animate-pulse" />
-                      Zap the Show
-                    </Button>
-                  </ZapDialog>
-                ) : (
-                  <Button variant="outline" className="w-full" disabled>
-                    <Zap className="w-4 h-4 mr-2" />
-                    {!user ? "Login to Zap" : "Creator has no Lightning address"}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+                    {creator?.event && user && (creator.metadata?.lud16 || creator.metadata?.lud06) ? (
+                      <ZapDialog target={creator.event}>
+                        <Button variant="outline" className="w-full btn-primary focus-ring">
+                          <Zap className="w-4 h-4 mr-2 animate-pulse" />
+                          Zap the Show
+                        </Button>
+                      </ZapDialog>
+                    ) : (
+                      <Button variant="outline" className="w-full" disabled>
+                        <Zap className="w-4 h-4 mr-2" />
+                        {!user ? "Login to Zap" : "Creator has no Lightning address"}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
             {/* Vibed with MKStack */}
             <Card>

@@ -3,6 +3,7 @@ import { ScrollToTop } from "./components/ScrollToTop";
 
 import Index from "./pages/Index";
 import Episodes from "./pages/Episodes";
+import Articles from "./pages/Articles";
 import Community from "./pages/Community";
 import SocialFeed from "./pages/SocialFeed";
 import PublishEpisode from "./pages/PublishEpisode";
@@ -25,6 +26,7 @@ export function AppRouter() {
         <Route path="/publish" element={<PublishEpisode />} />
         <Route path="/studio" element={<Studio />} />
         <Route path="/about" element={<About />} />
+        <Route path="/articles" element={<Articles />} />
         <Route path="/debug-audio" element={<DebugAudio />} />
         {/* NIP-19 route for npub1, note1, naddr1, nevent1, nprofile1 */}
         <Route path="/:nip19" element={<NIP19Page />} />

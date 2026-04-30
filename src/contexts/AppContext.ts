@@ -9,6 +9,8 @@ export interface AppConfig {
   relayUrl: string;
   /** Enable/disable zap (Lightning payment) UI across the entire app */
   zapsEnabled: boolean;
+  /** Enable/disable long-form article (NIP-23) UI across the entire app */
+  longFormEnabled: boolean;
 }
 
 export interface AppContextType {

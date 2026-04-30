@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Headphones, List, Users, MessageSquare, User, Rss, Settings } from 'lucide-react';
+import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
+import { useAppContext } from '@/hooks/useAppContext';
 import { isPodcastCreator } from '@/lib/podcastConfig';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,7 @@ export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const { user } = useCurrentUser();
   const podcastConfig = usePodcastConfig();
+  const { config } = useAppContext();
   const isCreator = user && isPodcastCreator(user.pubkey);
 
   const isActive = (path: string) => {
@@ -47,7 +49,13 @@ export function Sidebar({ className }: SidebarProps) {
       icon: Users,
       label: 'Community',
       description: 'Engage with listeners'
-    }
+    },
+    ...(config.longFormEnabled ? [{
+      path: '/articles',
+      icon: BookOpen,
+      label: 'Articles',
+      description: 'Long-form posts'
+    }] : [])
   ];
 
   const secondaryItems = [

@@ -37,6 +37,7 @@ const defaultConfig: AppConfig = {
   theme: "light",
   relayUrl: "wss://relay.ditto.pub",
   zapsEnabled: false,
+  longFormEnabled: false,
 };
 
 const presetRelays = [
