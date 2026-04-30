@@ -14,11 +14,15 @@ interface AppProviderProps {
 }
 
 // Zod schema for AppConfig validation
+const contentTypeEnum = z.enum(['episode', 'article', 'post', 'auto']);
+
 const AppConfigSchema: z.ZodType<AppConfig, z.ZodTypeDef, unknown> = z.object({
   theme: z.enum(['dark', 'light', 'system']),
   relayUrl: z.string().url(),
   zapsEnabled: z.boolean().default(true),
   longFormEnabled: z.boolean().default(false),
+  latestSection: contentTypeEnum.default('auto'),
+  recentSection: contentTypeEnum.default('episode'),
 });
 
 export function AppProvider(props: AppProviderProps) {

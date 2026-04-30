@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { NoteContent } from '@/components/NoteContent';
+import { ArticleContent } from '@/components/article/ArticleContent';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Link } from 'react-router-dom';
@@ -93,7 +94,8 @@ export function EpisodeCard({
   };
 
   return (
-    <Card className={className}>
+    <Link to={`/${episodeNaddr}`} className="block group">
+    <Card className={cn("card-hover cursor-pointer", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-start space-x-4">
           {episode.imageUrl && (
@@ -125,7 +127,7 @@ export function EpisodeCard({
                     "text-muted-foreground hover:text-blue-500 h-6 px-1",
                     commentsVisible && "text-blue-500"
                   )}
-                  onClick={() => setCommentsVisible(!commentsVisible)}
+                  onClick={(e) => { e.preventDefault(); setCommentsVisible(!commentsVisible); }}
                 >
                   <MessageCircle className={cn(
                     "w-3 h-3 mr-1",
@@ -138,14 +140,9 @@ export function EpisodeCard({
               </div>
             </div>
 
-            <Link
-              to={`/${episodeNaddr}`}
-              className="block group"
-            >
-              <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors cursor-pointer">
-                {episode.title}
-              </h3>
-            </Link>
+            <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+              {episode.title}
+            </h3>
 
             <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
               <div className="flex items-center space-x-1">
@@ -182,9 +179,10 @@ export function EpisodeCard({
       <CardContent className="pt-0">
         {episode.description && (
           <div className="mb-4">
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {episode.description}
-            </p>
+            <ArticleContent
+              content={episode.description.length > 200 ? episode.description.slice(0, 200) + '…' : episode.description}
+              className="text-sm prose-sm"
+            />
           </div>
         )}
 
@@ -197,10 +195,11 @@ export function EpisodeCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center space-x-2">
             <Button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 playEpisode(episode);
                 onPlayEpisode?.(episode);
               }}
@@ -221,7 +220,7 @@ export function EpisodeCard({
             />
           </div>
 
-          <Button variant="ghost" size="sm" onClick={handleShare}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.preventDefault(); handleShare(); }}>
             <Share className="w-4 h-4" />
           </Button>
         </div>
@@ -238,5 +237,6 @@ export function EpisodeCard({
         )}
       </CardContent>
     </Card>
+    </Link>
   );
 }

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { Article } from '@/types/article';
+import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
 
 /** Kind 30023 — NIP-23 long-form content */
 const ARTICLE_KIND = 30023;
@@ -40,7 +41,7 @@ function eventToArticle(event: NostrEvent): Article {
   };
 }
 
-/** Fetches all NIP-23 articles, deduplicated by d-tag (keeps latest) */
+/** Fetches NIP-23 articles by the podcast creator, deduplicated by d-tag (keeps latest) */
 export function useArticles() {
   const { nostr } = useNostr();
 
@@ -50,6 +51,7 @@ export function useArticles() {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
       const events = await nostr.query([{
         kinds: [ARTICLE_KIND],
+        authors: [getCreatorPubkeyHex()],
         limit: 100,
       }], { signal });
 

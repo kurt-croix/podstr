@@ -264,7 +264,12 @@ export function useCreatorNotes(limit: number = 50) {
         limit: limit
       }], { signal });
 
-      return events.sort((a, b) => b.created_at - a.created_at);
+      // Filter out replies (notes with 'e' tags) to show only root notes
+      const rootNotes = events.filter(event =>
+        !event.tags.some(tag => tag[0] === 'e')
+      );
+
+      return rootNotes.sort((a, b) => b.created_at - a.created_at);
     },
     staleTime: 60000, // 1 minute
   });

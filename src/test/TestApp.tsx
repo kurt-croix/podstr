@@ -26,6 +26,8 @@ export function TestApp({ children }: TestAppProps) {
     relayUrl: 'wss://relay.ditto.pub',
     zapsEnabled: true,
     longFormEnabled: false,
+    latestSection: 'episode',
+    recentSection: 'episode',
   };
 
   return (
