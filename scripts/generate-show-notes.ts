@@ -183,6 +183,12 @@ ${transcript}`;
     usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
   };
 
+  // Debug: log response shape if unexpected
+  if (!result.choices?.[0]?.message?.content) {
+    console.error(`  ❌ Unexpected response shape: ${JSON.stringify(Object.keys(result))}`);
+    console.error(`  ❌ Full response: ${JSON.stringify(result).substring(0, 500)}`);
+  }
+
   if (result.choices?.[0]?.message?.content) {
     const usage = result.usage;
     console.log(`    tokens: ${usage.prompt_tokens} in / ${usage.completion_tokens} out / ${usage.total_tokens} total`);
