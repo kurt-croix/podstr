@@ -110,19 +110,21 @@ export async function publishToRelay(event: NostrEvent, relayUrl: string): Promi
  * Publish event to multiple relays, return true if at least one succeeds
  */
 export async function publishEvent(event: NostrEvent): Promise<boolean> {
+  let anySuccess = false;
   for (const relayUrl of PUBLISH_RELAYS) {
     try {
       const ok = await publishToRelay(event, relayUrl);
       if (ok) {
         console.log(`      ✅ Published to ${relayUrl}`);
-        return true;
+        anySuccess = true;
+      } else {
+        console.log(`      ⚠️  Rejected by ${relayUrl}`);
       }
-      console.log(`      ⚠️  Rejected by ${relayUrl}`);
     } catch {
       console.log(`      ⚠️  Failed to connect to ${relayUrl}`);
     }
   }
-  return false;
+  return anySuccess;
 }
 
 /**
