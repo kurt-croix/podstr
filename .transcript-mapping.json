@@ -1,36 +1,36 @@
 [
   {
-    "dTag": "9573ed8f-9348-43d4-8dee-5fa6bf68aada",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_29-1777525893.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_29-1777525893.srt",
+    "dTag": "994031fc-f00f-43d6-bc57-54c7f1353aad",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Untitled-1773434096.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Untitled-1773434096.srt",
     "success": true,
     "event": {
       "content": "",
-      "created_at": 1777525893,
-      "id": "0cbb434470d732d70465e8fb0605c8876966552de2c24e7fb28eec87cb06902a",
+      "created_at": 1773434096,
+      "id": "7541557676269824e8be8ea91e69d6bb591a6eb97f3bfe1a0823a07f22ba306a",
       "kind": 30054,
       "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "926d7ebb63d6cbf80805ff01246fb2d730ecac8f8fe332971e96aeafd5c01fc7e9cf312ed6c38a8e2d2c67883a2b747ffc4965a974d3fbfb2ac0911cdb18715b",
+      "sig": "721ca0a67af53e59d495a7fea3a2de40e9b7109396cadcb7458e60456f4fc46d453fa17382c56b7bf177312c72f0bcbc265eb32f9f53613fd8d599ed413be214",
       "tags": [
         [
           "d",
-          "9573ed8f-9348-43d4-8dee-5fa6bf68aada"
+          "994031fc-f00f-43d6-bc57-54c7f1353aad"
         ],
         [
           "title",
-          "Ray County Commissioner's Meeting 4/29"
+          "Untitled"
         ],
         [
           "summary",
-          "Ray County Commissioner's meetings streaming"
+          ""
         ],
         [
           "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/ff7f18770f730df738faeb699b77f31c/downloads/default.mp4?filename=ray-county-commissioner-s-meeting-4-29"
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/efa28516fe9a568d8b9cd6403411d658/downloads/default.mp4"
         ],
         [
           "image",
-          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/efa28516fe9a568d8b9cd6403411d658/thumbnails/thumbnail.jpg"
         ],
         [
           "duration",
@@ -38,7 +38,7 @@
         ],
         [
           "alt",
-          "Podcast episode: Ray County Commissioner's Meeting 4/29"
+          "Podcast episode: Untitled"
         ],
         [
           "client",
@@ -50,11 +50,7 @@
         ],
         [
           "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:9573ed8f-9348-43d4-8dee-5fa6bf68aada"
-        ],
-        [
-          "description",
-          "This County Commission meeting covered several infrastructure and administrative topics. During public comments, citizens raised concerns about road drainage and Sunshine Request procedures, prompting discussions on implementing a centralized county road complaint form. \n\nIn administrative actions, the commission approved previous minutes, a plat for Tucker Razors, and voted to waive a submission irregularity to consider a single late bid for the Holt College project. \n\nA significant portion of the meeting featured an engineering update on local bridges. Discussions included design progress and cost estimates for the Myers Road, West 216th Street, and West 84th Street bridge projects, as well as the partial demolition of the Lexington/Henrietta bridge. The commission plans to review the Eagleton Agreement next week before entering a closed session.\n\n===== FULL DESCRIPTION =====\n\nThis comprehensive summary covers the key discussions, decisions, and public interactions from the recent county commission meeting. The session addressed a variety of topics, ranging from public grievances regarding road maintenance and sunshine law requests to in-depth engineering reports on major bridge and infrastructure projects across the county. \n\n**Meeting Opening and Administrative Business**\nThe meeting commenced with an opening prayer, followed by a special recognition for Child Abuse Prevention Month. Attendees and officials wore blue in support of the initiative, and the commission recognized a staff member named Julie for her efforts in decorating the county courtyard for the occasion. \n\nFollowing the opening remarks, the commission handled standard administrative duties. The commission voted to untable and subsequently approve the meeting minutes from January 22nd and 23rd, as well as the approval of county payables. Additionally, the commission addressed a planning and zoning matter involving a plat for \"Tucker Razors.\" One commissioner officially recused themselves from the vote due to a disclosed conflict of interest, and the remaining members voted to approve the document. \n\n**Public Forum: Road Maintenance and Sunshine Requests**\nA significant portion of the meeting was dedicated to public comments, with several citizens expressing concerns over local infrastructure and administrative processes.\n\n*   **Road Maintenance and Complaint Systems:** One citizen launched a new independent website, \"f3oads.com\" (fix roads), designed to allow residents to map and report road issues directly to the appropriate special road districts and county officials. In response, the commission discussed the necessity of establishing an official, county-run intake form. Another citizen presented a Google Doc template they had developed for the county's website. The commission agreed that while independent citizen efforts are noted, the county needs a standardized, county-approved document to serve as the official go-to repository for road grievances.\n*   **Specific Road Grievances:** A resident of Aikenwood in the Raymoor area raised an ongoing issue regarding a steep hill on their road. The resident, a retired road department employee, noted that county workers had recently attempted to clear a ditch but inadvertently accelerated water flow. This runoff repeatedly washes away the gravel, plugs the resident's driveway culvert pipe, and traps them in their home. The resident offered to purchase a new pipe if the county would provide the equipment and labor to install it properly to mitigate the water velocity. The commission noted the issue for follow-up.\n*   **Sunshine Law and Records Requests:** A local citizen questioned the county's new policy regarding Sunshine Requests, specifically the recent implementation of prepayment for research fees. The citizen asked if pending requests would be honored under the old fee structure. The commission confirmed that requests submitted prior to the fee change would be respected at the old rate, but advised the citizen to resubmit any unanswered requests so they could be routed to the county's legal counsel. The commission clarified that prepayment for research must be made on an individual request basis, as managing an ongoing \"account\" for a citizen would create excessive administrative accounting burdens. \n\n**Engineering and Infrastructure Updates**\nThe commission received a highly detailed presentation from representatives of Great River Engineering regarding several major bridge and road projects, including guidance on federal and state compliance for hiring contractors.\n\n*   **Consultant Selection Process (The Brooks Act):** The engineering firm provided a detailed overview of the proper legal procedures for hiring engineering professionals. Under the federal Brooks Act, and Missouri's corresponding \"Mini-Brooks Act,\" municipalities must use a Qualification-Based Selection (QBS) process rather than a traditional low-bid system when hiring engineers. For projects using local funds with engineering fees under $200,000, the county can select from a pre-approved MoDOT consultant list. For contracts exceeding $200,000, a formal Request for Qualifications (RFQ) is required. However, if the county already has an established relationship with a qualified firm, it can continue that relationship without a new RFQ process.\n*   **Myers Road Bridge Update:** Engineers are finalizing the design for the Myers Road bridge, which crosses over a railroad corridor. By introducing a vertical curve to the bridge's profile, engineers managed to lower the entrance and exit grades, reducing the total elevation increase from nearly eight feet to just over five feet. Because the area sits on unstable glacial till rather than solid bedrock, the substructure will utilize robust cast-in-place walls supported by pile footings driven 20 to 25 feet down to solid rock. The project will require temporary construction easements from two property owners. Final plans are expected to be submitted by June or July, with the project going out for bid next spring.\n*   **West 216th Street Bridge:** The commission reviewed plans to replace this structure with precast boxes. It was clarified that the county's own forces do not possess the heavy equipment necessary to set the precast boxes, meaning a private contractor will need to be hired for the installation. The project will feature two 12-foot lanes and headwalls. Engineers noted that while the project falls within a 60-foot right-of-way corridor, the county may need to secure formal easements or written permissions from adjacent landowners to access the creek bed for maintenance.\n*   **West 84th Street Bridge:** Surveying revealed that this crossing is significantly deeper than initially anticipated, measuring nearly 18 feet to the bottom. Consequently, standard practices dictate an 78.5-foot precast NU girder structure. Engineers provided recent bid comparisons from similar projects in neighboring counties, noting that construction costs can vary wildly depending on contractor availability, ranging from $410,000 to nearly $700,000. The county was advised to estimate construction costs between $500,000 and $600,000, plus $130,000 in engineering design fees. The commission retains the option to reject bids if they come in too high and pursue value engineering.\n*   **Lexington Avenue/Henrietta Street Demolition:** The county plans to pursue the full demolition of an older bridge. Engineers suggested that the county could save significant funds by only removing the superstructure (the deck and beams) and leaving the substructure intact, as the substructure could potentially stand for another 30 years. However, completely removing the substructure is expensive and requires extensive safety shoring due to the active railroad tracks nearby. The engineers noted that MoDOT allows the demolition of a structure to count toward the county's BRO (Bridge Replacement Off-system) soft match credit, which would free up more federal funding for future projects.\n*   **Future Bridge Applications:** The commission and engineers briefly reviewed the county's structurally deficient bridge list. The ratings are based on state inspections, where a score of 4 or lower indicates poor condition. The county must soon select its top two priority bridges to submit for the upcoming April 1st federal funding application cycle.\n\n**Bid Waiver for Holt College**\nBefore closing the public session, a representative named Connie phoned into the meeting to discuss a bid opening for the Holt College project. Only a single bid was received for the project, but it was submitted an hour past the designated deadline. The county's legal counsel, Travis Elliott, reviewed the situation and advised that because there was only one bidder, the legal risk in waiving the irregularity was exceptionally low. The commission voted unanimously to waive the irregularity and officially open the bid for consideration.\n\n**Closing Remarks**\nAs the meeting drew to a close, the commission confirmed that an agenda item regarding a token system would be delayed until the following week. The commission also scheduled a review of the Eagleton Agreement to discuss proposed changes to county rent terms. The commission then announced it would be moving into a closed executive session to handle sensitive legal and personnel matters.\n\nTranscription: https://kurt-croix.github.io/podstr/transcripts/Ray_County_Commissioner_s_Meeting_4_29-1777525893.srt"
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:994031fc-f00f-43d6-bc57-54c7f1353aad"
         ]
       ]
     }
