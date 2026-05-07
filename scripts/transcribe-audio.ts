@@ -388,12 +388,35 @@ async function main() {
     process.exit(0);
   }
 
-  // Sort by timestamp (most recent first) and limit to 1 episode
+  // Sort by timestamp (most recent first)
   episodes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  // Pre-filter episodes that already have transcripts to avoid wasting the slot
+  const untranscribed: typeof episodes = [];
+  for (const episode of episodes) {
+    const safeTitle = sanitizeFilename(episode.title);
+    const timestamp = episode.timestamp || Date.now();
+    const transcriptFilename = `${safeTitle}-${timestamp}.srt`;
+    const transcriptPath = path.join(TRANSCRIPTS_DIR, transcriptFilename);
+    try {
+      await fs.access(transcriptPath);
+      // Already transcribed — skip
+    } catch {
+      untranscribed.push(episode);
+    }
+  }
+
+  console.log(`📋 ${episodes.length} total, ${episodes.length - untranscribed.length} already transcribed, ${untranscribed.length} need transcription`);
+
   const MAX_EPISODES = 1;
-  const episodesToProcess = episodes.slice(0, MAX_EPISODES);
-  if (episodes.length > MAX_EPISODES) {
-    console.log(`⚠️  Limiting to ${MAX_EPISODES} episode per run (most recent first) (${episodes.length} total found)`);
+  const episodesToProcess = untranscribed.slice(0, MAX_EPISODES);
+  if (untranscribed.length > MAX_EPISODES) {
+    console.log(`⚠️  Limiting to ${MAX_EPISODES} episode per run (most recent first) (${untranscribed.length} untranscribed)`);
+  }
+
+  if (episodesToProcess.length === 0) {
+    console.log('⏭️  All episodes already transcribed');
+    process.exit(0);
   }
 
   console.log(`📝 Transcribing most recent episode: ${episodesToProcess[0].title}`);
