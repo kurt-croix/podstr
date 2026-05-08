@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NoteContent } from '@/components/NoteContent';
+import { ArticleContent } from '@/components/article/ArticleContent';
 import { EpisodeActions } from './EpisodeActions';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Layout } from '@/components/Layout';
@@ -426,10 +427,11 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
             <CardContent className="space-y-6">
               {/* Episode Description */}
               {episode.description && (
-                <div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {episode.description}
-                  </p>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ArticleContent
+                    content={episode.description}
+                    className="text-sm"
+                  />
                 </div>
               )}
 
