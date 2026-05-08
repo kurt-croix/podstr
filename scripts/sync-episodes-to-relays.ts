@@ -107,6 +107,7 @@ async function main() {
   console.log('🔄 Syncing episodes to all relays...');
 
   const nostrPrivateKey = process.env.NOSTR_PRIVATE_KEY;
+  const syncAll = process.argv.includes('--all');
 
   if (!nostrPrivateKey) {
     console.error('❌ NOSTR_PRIVATE_KEY environment variable is required');
@@ -115,47 +116,7 @@ async function main() {
 
   const signer = createSigner(nostrPrivateKey);
 
-  // Collect all d-tags from pipeline outputs
-  const dTags = new Set<string>();
-
-  // Read transcript mapping
-  try {
-    const mappingJson = await fs.readFile('.transcript-mapping.json', 'utf-8');
-    const transcriptResults: TranscriptResult[] = JSON.parse(mappingJson);
-    transcriptResults.filter(r => r.success).forEach(r => dTags.add(r.dTag));
-    console.log(`📋 Found ${dTags.size} d-tag(s) from transcript mapping`);
-  } catch {
-    console.log('⚠️  No transcript mapping found');
-  }
-
-  // Read show notes mapping
-  try {
-    const notesJson = await fs.readFile('.show-notes-mapping.json', 'utf-8');
-    const notesResults: ShowNotesResult[] = JSON.parse(notesJson);
-    notesResults.filter(r => r.success).forEach(r => dTags.add(r.dTag));
-    console.log(`📋 Found ${dTags.size} total d-tag(s) after show notes mapping`);
-  } catch {
-    console.log('⚠️  No show notes mapping found');
-  }
-
-  if (dTags.size === 0) {
-    console.log('⏭️  No episodes to sync');
-    process.exit(0);
-  }
-
-  // Get the pubkey for querying
-  const pubkey = (() => {
-    if (nostrPrivateKey.startsWith('nsec1')) {
-      const decoded = nip19.decode(nostrPrivateKey);
-      const hexKey = Buffer.from(decoded.data as Uint8Array).toString('hex');
-      const signer = new NSecSigner(new Uint8Array(Buffer.from(hexKey, 'hex')));
-      // We can derive pubkey from nsec, but it's easier to just query by d-tag
-    }
-    return undefined;
-  })();
-
-  // We need the pubkey to query — derive it from the private key
-  // Use nostr-tools getPublicKey for hex key
+  // Get pubkey
   let authorPubkey: string;
   const { getPublicKey } = await import('nostr-tools');
   if (nostrPrivateKey.startsWith('nsec1')) {
@@ -165,6 +126,48 @@ async function main() {
     authorPubkey = getPublicKey(nostrPrivateKey);
   }
   console.log(`🔑 Author pubkey: ${authorPubkey.substring(0, 8)}...`);
+
+  // Collect d-tags to sync
+  const dTags = new Set<string>();
+
+  if (syncAll) {
+    // Query all episodes from relays
+    console.log('📋 --all mode: fetching all episodes from relays...');
+    const events = await queryRelay('wss://nos.lol', {
+      kinds: [30054],
+      authors: [authorPubkey],
+      limit: 200,
+    });
+    events.forEach(e => {
+      const d = e.tags.find(([n]) => n === 'd')?.[1];
+      if (d) dTags.add(d);
+    });
+    console.log(`📋 Found ${dTags.size} total episode(s) from relays`);
+  } else {
+    // Read d-tags from pipeline outputs
+    try {
+      const mappingJson = await fs.readFile('.transcript-mapping.json', 'utf-8');
+      const transcriptResults: TranscriptResult[] = JSON.parse(mappingJson);
+      transcriptResults.filter(r => r.success).forEach(r => dTags.add(r.dTag));
+      console.log(`📋 Found ${dTags.size} d-tag(s) from transcript mapping`);
+    } catch {
+      console.log('⚠️  No transcript mapping found');
+    }
+
+    try {
+      const notesJson = await fs.readFile('.show-notes-mapping.json', 'utf-8');
+      const notesResults: ShowNotesResult[] = JSON.parse(notesJson);
+      notesResults.filter(r => r.success).forEach(r => dTags.add(r.dTag));
+      console.log(`📋 Found ${dTags.size} total d-tag(s) after show notes mapping`);
+    } catch {
+      console.log('⚠️  No show notes mapping found');
+    }
+  }
+
+  if (dTags.size === 0) {
+    console.log('⏭️  No episodes to sync');
+    process.exit(0);
+  }
 
   let syncCount = 0;
   let skipCount = 0;
