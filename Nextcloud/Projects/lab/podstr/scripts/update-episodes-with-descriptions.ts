@@ -185,7 +185,7 @@ export async function updateEpisodeWithDescription(
   return signer.signEvent({
     kind: event.kind,
     content: event.content,
-    created_at: event.created_at,
+    created_at: Math.max(event.created_at + 1, Math.floor(Date.now() / 1000)),
     tags: newTags,
   });
 }
