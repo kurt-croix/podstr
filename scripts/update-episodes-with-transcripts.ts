@@ -12,6 +12,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { NSecSigner } from '@nostrify/nostrify';
 import { promises as fs } from 'fs';
 import { WebSocket } from 'ws';
+import { PUBLISH_RELAYS } from './lib/constants';
 
 interface TranscriptionResult {
   dTag: string;
@@ -23,12 +24,6 @@ interface TranscriptionResult {
 }
 
 const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
-const PUBLISH_RELAYS = [
-  'wss://nos.lol',
-  'wss://relay.damus.io',
-  'wss://relay.primal.net',
-  'wss://relay.ditto.pub',
-];
 
 /**
  * Update episode with transcript URL
@@ -66,7 +61,7 @@ export async function updateEpisodeWithTranscript(
   return signer.signEvent({
     kind: event.kind,
     content: event.content,
-    created_at: event.created_at,
+    created_at: Math.max(event.created_at + 1, Math.floor(Date.now() / 1000)),
     tags: newTags,
   });
 }
