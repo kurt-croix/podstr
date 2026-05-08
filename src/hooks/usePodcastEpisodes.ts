@@ -158,7 +158,7 @@ export function usePodcastEpisodes(options: ExtendedEpisodeSearchOptions = {}) {
       const events = await nostr.query([{
         kinds: [PODCAST_KINDS.EPISODE],
         authors: [getCreatorPubkeyHex()],
-        limit: options.limit || 20, // Reduced default from 100 to 20 for better performance
+        limit: options.limit || 50, // Fetch enough to cover all episodes after dedup
         ...(options.until ? { until: options.until } : {}),
       }], { signal });
 
