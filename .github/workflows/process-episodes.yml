@@ -156,7 +156,7 @@ jobs:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
 
       - name: Sync episodes to all relays
-        run: npx -y tsx scripts/sync-episodes-to-relays.ts
+        run: npx -y tsx scripts/sync-episodes-to-relays.ts --all
         timeout-minutes: 15
         env:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
