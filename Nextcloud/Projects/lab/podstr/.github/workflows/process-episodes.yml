@@ -160,3 +160,9 @@ jobs:
         timeout-minutes: 15
         env:
           NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
+
+      - name: Sync episodes to all relays
+        run: npx -y tsx scripts/sync-episodes-to-relays.ts
+        timeout-minutes: 15
+        env:
+          NOSTR_PRIVATE_KEY: ${{ secrets.NOSTR_PRIVATE_KEY }}
