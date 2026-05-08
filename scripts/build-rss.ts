@@ -225,19 +225,43 @@ function validatePodcastEpisode(event: NostrEvent, creatorPubkeyHex: string): bo
 /**
  * Fetch livestream events (kind 30311) and build a map of `pubkey:dTag → starts timestamp`
  * Used to get original livestream start times for accurate RSS publish dates
+ *
+ * Extracts livestream author pubkeys from episode events' "livestream" tags
+ * (format: "30311:<pubkey>:<dTag>") since livestreams may be authored by a
+ * different key than the podcast episodes.
  */
 async function fetchLivestreamStartsMap(
   relays: Array<{url: string, relay: NRelay1}>,
-  authorPubkeys: string[],
+  episodeEvents: NostrEvent[],
 ): Promise<Map<string, number>> {
   const startsMap = new Map<string, number>();
+
+  // Extract unique livestream author pubkeys from episode livestream tags
+  const livestreamPubkeys = new Set<string>();
+  for (const event of episodeEvents) {
+    const lsTag = event.tags.find(([n]) => n === 'livestream')?.[1];
+    if (lsTag) {
+      const parts = lsTag.split(':');
+      if (parts.length >= 3 && parts[0] === '30311') {
+        livestreamPubkeys.add(parts[1]);
+      }
+    }
+  }
+
+  if (livestreamPubkeys.size === 0) {
+    console.log('📅 No livestream tags found in episodes');
+    return startsMap;
+  }
+
+  const pubkeyArray = Array.from(livestreamPubkeys);
+  console.log(`📅 Fetching livestreams from ${pubkeyArray.length} author(s)`);
 
   const relayPromises = relays.map(async ({url, relay}) => {
     try {
       const events = await Promise.race([
         relay.query([{
           kinds: [30311],
-          authors: authorPubkeys,
+          authors: pubkeyArray,
           limit: 200,
         }]),
         new Promise((_, reject) =>
@@ -825,21 +849,21 @@ async function buildRSS() {
         console.log('📄 Using podcast metadata from config file');
       }
 
-      // Fetch livestream start times for accurate publish dates
-      const livestreamStarts = await fetchLivestreamStartsMap(relays, [creatorPubkeyHex]);
-
-      // Try to load episodes from cache first to avoid duplicate fetches
+      // Fetch raw episode events first (needed to extract livestream pubkeys)
+      let rawEpisodeEvents: NostrEvent[];
       const cachedEpisodes = await loadEpisodesFromCache();
       if (cachedEpisodes && cachedEpisodes.length > 0) {
-        // Overlay transcript URLs and show notes from pipeline mapping files
-        const overlaidEpisodes = await overlayPipelineData(cachedEpisodes);
-        episodes = overlaidEpisodes.map(e => eventToPodcastEpisode(e, livestreamStarts));
+        rawEpisodeEvents = await overlayPipelineData(cachedEpisodes);
       } else {
-        // Fetch raw events from multiple relays, overlay pipeline data, then convert
         const rawEvents = await fetchPodcastEpisodeEventsMultiRelay(relays, creatorPubkeyHex);
-        const overlaidEvents = await overlayPipelineData(rawEvents);
-        episodes = overlaidEvents.map(e => eventToPodcastEpisode(e, livestreamStarts));
+        rawEpisodeEvents = await overlayPipelineData(rawEvents);
       }
+
+      // Fetch livestream start times using pubkeys extracted from episode events
+      const livestreamStarts = await fetchLivestreamStartsMap(relays, rawEpisodeEvents);
+
+      // Convert to PodcastEpisode format with livestream dates
+      episodes = rawEpisodeEvents.map(e => eventToPodcastEpisode(e, livestreamStarts));
 
       // Fetch trailers from multiple relays
       trailers = await fetchPodcastTrailersMultiRelay(relays, creatorPubkeyHex);
