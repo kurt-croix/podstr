@@ -223,9 +223,60 @@ function validatePodcastEpisode(event: NostrEvent, creatorPubkeyHex: string): bo
 }
 
 /**
+ * Fetch livestream events (kind 30311) and build a map of `pubkey:dTag → starts timestamp`
+ * Used to get original livestream start times for accurate RSS publish dates
+ */
+async function fetchLivestreamStartsMap(
+  relays: Array<{url: string, relay: NRelay1}>,
+  authorPubkeys: string[],
+): Promise<Map<string, number>> {
+  const startsMap = new Map<string, number>();
+
+  const relayPromises = relays.map(async ({url, relay}) => {
+    try {
+      const events = await Promise.race([
+        relay.query([{
+          kinds: [30311],
+          authors: authorPubkeys,
+          limit: 200,
+        }]),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Livestream query timeout for ${url}`)), 5000)
+        ),
+      ]) as NostrEvent[];
+
+      return events;
+    } catch {
+      return [];
+    }
+  });
+
+  const allResults = await Promise.allSettled(relayPromises);
+  for (const result of allResults) {
+    if (result.status !== 'fulfilled') continue;
+    for (const event of result.value) {
+      const dTag = event.tags.find(([n]) => n === 'd')?.[1];
+      const starts = event.tags.find(([n]) => n === 'starts')?.[1];
+      if (dTag && starts) {
+        const key = `${event.pubkey}:${dTag}`;
+        const ts = parseInt(starts, 10);
+        // Keep earliest starts if multiple versions exist
+        const existing = startsMap.get(key);
+        if (!existing || ts < existing) {
+          startsMap.set(key, ts);
+        }
+      }
+    }
+  }
+
+  console.log(`📅 Built livestream starts map with ${startsMap.size} entries`);
+  return startsMap;
+}
+
+/**
  * Converts a validated Nostr event to a PodcastEpisode object
  */
-function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
+function eventToPodcastEpisode(event: NostrEvent, livestreamStarts?: Map<string, number>): PodcastEpisode {
   const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
 
   const title = tags.get('title')?.[0] || 'Episode';
@@ -254,11 +305,32 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   const durationStr = tags.get('duration')?.[0];
   const duration = durationStr ? parseInt(durationStr, 10) : undefined;
 
-  // Extract publication date from pubdate tag with fallback to created_at
+  // Extract publication date: prefer pubdate tag, then livestream starts, then created_at
   const pubdateStr = tags.get('pubdate')?.[0];
   let publishDate: Date;
+
+  // Try to get original livestream start time from the livestream tag
+  let livestreamStart: number | undefined;
+  if (livestreamStarts) {
+    const livestreamTag = tags.get('livestream')?.[0];
+    if (livestreamTag) {
+      // Format: "30311:<pubkey>:<dTag>" — extract pubkey:dTag for lookup
+      const parts = livestreamTag.split(':');
+      if (parts.length >= 3 && parts[0] === '30311') {
+        const key = `${parts[1]}:${parts[2]}`;
+        livestreamStart = livestreamStarts.get(key);
+      }
+    }
+  }
+
   try {
-    publishDate = pubdateStr ? new Date(pubdateStr) : new Date(event.created_at * 1000);
+    if (pubdateStr) {
+      publishDate = new Date(pubdateStr);
+    } else if (livestreamStart) {
+      publishDate = new Date(livestreamStart * 1000);
+    } else {
+      publishDate = new Date(event.created_at * 1000);
+    }
   } catch {
     publishDate = new Date(event.created_at * 1000);
   }
@@ -612,11 +684,15 @@ async function fetchPodcastEpisodeEventsMultiRelay(relays: Array<{url: string, r
 /**
  * Fetch podcast episodes from multiple Nostr relays, converted to PodcastEpisode format
  */
-async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
+async function fetchPodcastEpisodesMultiRelay(
+  relays: Array<{url: string, relay: NRelay1}>,
+  creatorPubkeyHex: string,
+  livestreamStarts?: Map<string, number>,
+) {
   const rawEvents = await fetchPodcastEpisodeEventsMultiRelay(relays, creatorPubkeyHex);
 
   const episodes = rawEvents
-    .map(event => eventToPodcastEpisode(event))
+    .map(event => eventToPodcastEpisode(event, livestreamStarts))
     .filter(episode => !IGNORED_EPISODES.includes(`${episode.authorPubkey}:${episode.identifier}`));
 
   return episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
@@ -749,17 +825,20 @@ async function buildRSS() {
         console.log('📄 Using podcast metadata from config file');
       }
 
+      // Fetch livestream start times for accurate publish dates
+      const livestreamStarts = await fetchLivestreamStartsMap(relays, [creatorPubkeyHex]);
+
       // Try to load episodes from cache first to avoid duplicate fetches
       const cachedEpisodes = await loadEpisodesFromCache();
       if (cachedEpisodes && cachedEpisodes.length > 0) {
         // Overlay transcript URLs and show notes from pipeline mapping files
         const overlaidEpisodes = await overlayPipelineData(cachedEpisodes);
-        episodes = overlaidEpisodes.map(eventToPodcastEpisode);
+        episodes = overlaidEpisodes.map(e => eventToPodcastEpisode(e, livestreamStarts));
       } else {
         // Fetch raw events from multiple relays, overlay pipeline data, then convert
         const rawEvents = await fetchPodcastEpisodeEventsMultiRelay(relays, creatorPubkeyHex);
         const overlaidEvents = await overlayPipelineData(rawEvents);
-        episodes = overlaidEvents.map(eventToPodcastEpisode);
+        episodes = overlaidEvents.map(e => eventToPodcastEpisode(e, livestreamStarts));
       }
 
       // Fetch trailers from multiple relays
