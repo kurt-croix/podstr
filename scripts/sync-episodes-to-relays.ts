@@ -253,24 +253,30 @@ async function main() {
     });
 
     // Publish to relays that need it
-    let anyFail = false;
+    let relaySuccesses = 0;
+    let relayFailures = 0;
     for (const relayUrl of relaysNeedingSync) {
       try {
         const ok = await publishToRelay(signedEvent, relayUrl);
         if (ok) {
           console.log(`   ✅ Published to ${relayUrl}`);
+          relaySuccesses++;
         } else {
           console.log(`   ⚠️  Rejected by ${relayUrl}`);
-          anyFail = true;
+          relayFailures++;
         }
       } catch {
         console.log(`   ❌ Failed to connect to ${relayUrl}`);
-        anyFail = true;
+        relayFailures++;
       }
     }
 
-    if (anyFail) {
+    if (relayFailures > 0 && relaySuccesses > 0) {
+      console.log(`   ⚠️  Partial sync (${relaySuccesses}/${relaysNeedingSync.length} relays)`);
+      syncCount++;
+    } else if (relayFailures > 0) {
       failCount++;
+    } else {
     } else {
       syncCount++;
     }
@@ -281,9 +287,12 @@ async function main() {
   console.log(`  Already complete: ${skipCount}`);
   console.log(`  Failed: ${failCount}`);
 
-  if (failCount > 0) {
-    console.log('\n⚠️  Some syncs failed. Check logs for details.');
+  // Only fail if episodes couldn't sync to ANY relay
+  if (failCount > 0 && syncCount === 0) {
+    console.log('\n❌ All syncs failed. Check logs for details.');
     process.exit(1);
+  } else if (failCount > 0) {
+    console.log('\n⚠️  Some syncs had relay rejections but succeeded on other relays.');
   }
 
   console.log('\n✅ All relays synced!');
