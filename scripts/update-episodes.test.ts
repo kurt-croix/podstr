@@ -170,38 +170,45 @@ describe('publishEvent', () => {
     mockInstances.length = 0;
   });
 
-  it('returns true when first relay accepts', async () => {
+  // Helper: resolve a mock WebSocket instance by triggering open then message
+  async function resolveMockRelay(ws: typeof mockInstances[0], eventId: string, accepted: boolean) {
+    const openHandler = ws.on.mock.calls.find(([e]) => e === 'open')?.[1];
+    const messageHandler = ws.on.mock.calls.find(([e]) => e === 'message')?.[1];
+    if (openHandler) await openHandler();
+    if (messageHandler) {
+      messageHandler(Buffer.from(JSON.stringify(['OK', eventId, accepted, accepted ? '' : 'rejected'])));
+    }
+  }
+
+  it('returns true when at least one relay accepts', async () => {
     const event = makeMockEvent();
     const promise = publishEvent(event);
 
-    await new Promise(r => setTimeout(r, 10));
-    const ws = mockInstances[0];
-    const messageHandler = ws.on.mock.calls.find(([e]) => e === 'message')![1];
-    messageHandler(Buffer.from(JSON.stringify(['OK', event.id, true, ''])));
-
-    const result = await promise;
-    expect(result).toBe(true);
-  });
-
-  it('tries next relay when first rejects', async () => {
-    const event = makeMockEvent();
-    const promise = publishEvent(event);
-
-    await new Promise(r => setTimeout(r, 10));
-    // First relay rejects
-    const ws1 = mockInstances[0];
-    const msgHandler1 = ws1.on.mock.calls.find(([e]) => e === 'message')![1];
-    msgHandler1(Buffer.from(JSON.stringify(['OK', event.id, false, 'rejected'])));
-
-    // Wait for second relay attempt
-    await new Promise(r => setTimeout(r, 50));
-    const ws2 = mockInstances[1];
-    if (ws2) {
-      const msgHandler2 = ws2.on.mock.calls.find(([e]) => e === 'message')![1];
-      msgHandler2(Buffer.from(JSON.stringify(['OK', event.id, true, ''])));
+    // publishEvent processes relays sequentially — resolve each as it's created
+    for (let i = 0; i < 4; i++) {
+      await new Promise(r => setTimeout(r, 10));
+      if (mockInstances[i]) {
+        await resolveMockRelay(mockInstances[i], event.id, true);
+      }
     }
 
     const result = await promise;
     expect(result).toBe(true);
-  });
+  }, 15000);
+
+  it('returns true when some relays reject but others accept', async () => {
+    const event = makeMockEvent();
+    const promise = publishEvent(event);
+
+    // Resolve relays sequentially: first rejects, rest accept
+    for (let i = 0; i < 4; i++) {
+      await new Promise(r => setTimeout(r, 10));
+      if (mockInstances[i]) {
+        await resolveMockRelay(mockInstances[i], event.id, i !== 0);
+      }
+    }
+
+    const result = await promise;
+    expect(result).toBe(true);
+  }, 15000);
 });

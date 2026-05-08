@@ -18,6 +18,7 @@ import { getPublicKey } from 'nostr-tools';
 import { promises as fs } from 'fs';
 import { WebSocket } from 'ws';
 import { queryRelay } from './lib/relay-query';
+import { PUBLISH_RELAYS } from './lib/constants';
 
 // --- Types ---
 
@@ -49,12 +50,6 @@ interface SrtEntry {
 
 const SHOW_NOTES_MAPPING_PATH = '.show-notes-mapping.json';
 const TRANSCRIPT_MAPPING_PATH = '.transcript-mapping.json';
-const PUBLISH_RELAYS = [
-  'wss://nos.lol',
-  'wss://relay.damus.io',
-  'wss://relay.primal.net',
-  'wss://relay.ditto.pub',
-];
 const ZHIPU_API_URL = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
 const ZHIPU_MODEL = 'glm-5.1';
 
@@ -190,7 +185,7 @@ export async function updateEpisodeWithDescription(
   return signer.signEvent({
     kind: event.kind,
     content: event.content,
-    created_at: event.created_at,
+    created_at: Math.max(event.created_at + 1, Math.floor(Date.now() / 1000)),
     tags: newTags,
   });
 }
