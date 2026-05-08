@@ -212,6 +212,19 @@ async function main() {
       continue;
     }
 
+    // If description contains a transcript URL but no transcript tag, add it
+    const hasTranscriptTag = mostComplete.tags.some(([n]) => n === 'transcript');
+    if (!hasTranscriptTag) {
+      const descTag = mostComplete.tags.find(([n]) => n === 'description');
+      if (descTag) {
+        const transcriptMatch = descTag[1].match(/Transcription:\s*(https?:\/\/[^\s]+)/);
+        if (transcriptMatch) {
+          console.log(`   📝 Extracted transcript URL from description: ${transcriptMatch[1]}`);
+          mostComplete.tags.push(['transcript', transcriptMatch[1]]);
+        }
+      }
+    }
+
     const requiredTags = ['transcript', 'description'];
     const hasAll = hasTags(mostComplete, requiredTags);
     console.log(`   📋 Most complete version: ${mostComplete.id.substring(0, 8)}... (tags: ${mostComplete.tags.length}, has all: ${hasAll})`);
