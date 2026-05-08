@@ -52,12 +52,20 @@ export async function updateEpisodeWithTranscript(
   // Build new tags — replace or add transcript tag
   const newTags = [...event.tags];
   const idx = newTags.findIndex(([name]) => name === 'transcript');
+  const existingTranscript = idx >= 0 ? newTags[idx][1] : undefined;
+
+  // Skip if transcript URL already matches
+  if (existingTranscript === transcriptUrl) {
+    return event;
+  }
+
   if (idx >= 0) {
     newTags[idx] = ['transcript', transcriptUrl];
   } else {
     newTags.push(['transcript', transcriptUrl]);
   }
 
+  // Bump created_at so relays accept the updated addressable event
   return signer.signEvent({
     kind: event.kind,
     content: event.content,

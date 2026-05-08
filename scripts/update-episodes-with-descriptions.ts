@@ -176,12 +176,20 @@ export async function updateEpisodeWithDescription(
 
   const newTags = [...event.tags];
   const idx = newTags.findIndex(([name]) => name === 'description');
+  const existingDescription = idx >= 0 ? newTags[idx][1] : undefined;
+
+  // Skip if description already matches
+  if (existingDescription === description) {
+    return event;
+  }
+
   if (idx >= 0) {
     newTags[idx] = ['description', description];
   } else {
     newTags.push(['description', description]);
   }
 
+  // Bump created_at so relays accept the updated addressable event
   return signer.signEvent({
     kind: event.kind,
     content: event.content,
