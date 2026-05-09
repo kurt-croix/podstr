@@ -886,6 +886,9 @@ async function buildRSS() {
 
       console.log(`📋 After filtering: ${episodes.length} episodes (${rawEpisodeEvents.length - episodes.length} ignored)`);
 
+      // Sort by publish date descending (newest first)
+      episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
+
       // Fetch trailers from multiple relays
       trailers = await fetchPodcastTrailersMultiRelay(relays, creatorPubkeyHex);
 
