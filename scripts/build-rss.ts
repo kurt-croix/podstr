@@ -879,8 +879,12 @@ async function buildRSS() {
       // Fetch livestream start times using pubkeys extracted from episode events
       const livestreamStarts = await fetchLivestreamStartsMap(relays, rawEpisodeEvents);
 
-      // Convert to PodcastEpisode format with livestream dates
-      episodes = rawEpisodeEvents.map(e => eventToPodcastEpisode(e, livestreamStarts));
+      // Convert to PodcastEpisode format with livestream dates, then filter ignored episodes
+      episodes = rawEpisodeEvents
+        .map(e => eventToPodcastEpisode(e, livestreamStarts))
+        .filter(episode => !IGNORED_EPISODES.includes(`${episode.authorPubkey}:${episode.identifier}`));
+
+      console.log(`📋 After filtering: ${episodes.length} episodes (${rawEpisodeEvents.length - episodes.length} ignored)`);
 
       // Fetch trailers from multiple relays
       trailers = await fetchPodcastTrailersMultiRelay(relays, creatorPubkeyHex);
