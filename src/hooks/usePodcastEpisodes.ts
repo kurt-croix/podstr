@@ -5,6 +5,26 @@ import type { PodcastEpisode, EpisodeSearchOptions, EpisodeValue } from '@/types
 import { getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
 import { extractZapAmount, validateZapEvent } from '@/lib/zapUtils';
 
+/** Episode d-tag identifiers to hide from the UI (test/duplicate episodes) */
+const HIDDEN_EPISODES = new Set([
+  '135429e2-f5fd-46fa-a439-a3d8efe6e0b4', // Testing??
+  '3d03305d-59be-4250-9122-b148569197c2', // Testing final?
+  '1cce52da-32ba-4447-bf8f-76581e81ca85', // Testing final??
+  '229f6eca-cf2d-4fce-88c3-12877acb2d86', // Testing final???
+  'fec88cfe-c499-4314-a29b-bca2ade4c75c', // Testing final????
+  '518b0c84-9973-41d8-b2cc-998d4e4804fe', // Testing final?????
+  'b30e2457-244f-4d78-9a2d-10037253542d', // Commissioner's Meeting (dup)
+  '9a430bef-49d2-4be7-9111-e214cb2397a4', // Commissioner's Meeting (dup)
+  '39e3d650-7410-42e6-aa7b-bf674aa3d572', // Commissioner's Meeting (dup)
+  '2799d33d-28a5-408c-a1b6-609d45ed8e0d', // Commissioner's Meeting (dup)
+  'd4de22be-8d87-46d7-aa50-83475a454248', // Untitled
+  '994031fc-f00f-43d6-bc57-54c7f1353aad', // Untitled
+  '2618edaf-a281-4718-9f6a-2cbd86e70496', // Untitled
+  'episode-1773089043233-ppjyx0f99', // Test
+  'episode-1773089770025-xe7ioudet', // Commissioners Meeting: March 4 (test)
+  '65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County 3/19 (dup)
+]);
+
 /** Extended options for episode fetching with performance controls */
 interface ExtendedEpisodeSearchOptions extends EpisodeSearchOptions {
   /** Skip fetching zap data for better performance (default: false) */
@@ -199,8 +219,10 @@ export function usePodcastEpisodes(options: ExtendedEpisodeSearchOptions = {}) {
         }
       });
 
-      // Convert to podcast episodes
-      const validEpisodes = Array.from(episodesByTitle.values()).map(eventToPodcastEpisode);
+      // Convert to podcast episodes and filter hidden ones
+      const validEpisodes = Array.from(episodesByTitle.values())
+        .map(eventToPodcastEpisode)
+        .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Fetch zap data for all episodes in a single query (optional for performance)
       const episodeIds = validEpisodes.map(ep => ep.eventId);
@@ -369,6 +391,10 @@ export function useLatestEpisode() {
       for (const event of validEvents) {
         if (originalEvents.has(event.id)) continue; // Skip edited originals
 
+        // Skip hidden test/duplicate episodes
+        const dTag = event.tags.find(([n]) => n === 'd')?.[1];
+        if (dTag && HIDDEN_EPISODES.has(dTag)) continue;
+
         const pubdateStr = event.tags.find(([name]) => name === 'pubdate')?.[1];
         const pubdate = pubdateStr 
           ? new Date(pubdateStr).getTime() 
@@ -438,9 +464,10 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
         }
       });
 
-      // Convert to podcast episodes
+      // Convert to podcast episodes and filter hidden ones
       const episodes = Array.from(episodesByIdentifier.values())
-        .map(eventToPodcastEpisode);
+        .map(eventToPodcastEpisode)
+        .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Sort by publishDate descending
       episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
