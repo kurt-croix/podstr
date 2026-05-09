@@ -23,9 +23,26 @@ const PODCAST_KINDS = {
  * List of episode GUIDs to ignore in RSS feed
  */
 const IGNORED_EPISODES = [
-  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County Commissioner's Meeting 3/19
-  // 'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:135429e2-f5fd-46fa-a439-a3d8efe6e0b4', // Ray County Commissioner's Meeting 3/19
-  // 'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:d6acea6e-7748-4186-92e4-299d0f191273', // Ray County Commissioner's Meeting 3/19 (another version)
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County Commissioner's Meeting 3/19 (duplicate)
+  // Test episodes
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:135429e2-f5fd-46fa-a439-a3d8efe6e0b4', // Testing??
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:3d03305d-59be-4250-9122-b148569197c2', // Testing final?
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:1cce52da-32ba-4447-bf8f-76581e81ca85', // Testing final??
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:229f6eca-cf2d-4fce-88c3-12877acb2d86', // Testing final???
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:fec88cfe-c499-4314-a29b-bca2ade4c75c', // Testing final????
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:518b0c84-9973-41d8-b2cc-998d4e4804fe', // Testing final?????
+  // Duplicate Commissioner's Meeting (no date — test duplicates)
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:b30e2457-244f-4d78-9a2d-10037253542d',
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:9a430bef-49d2-4be7-9111-e214cb2397a4',
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:39e3d650-7410-42e6-aa7b-bf674aa3d572',
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:2799d33d-28a5-408c-a1b6-609d45ed8e0d',
+  // Untitled test episodes
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:d4de22be-8d87-46d7-aa50-83475a454248',
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:994031fc-f00f-43d6-bc57-54c7f1353aad',
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:2618edaf-a281-4718-9f6a-2cbd86e70496',
+  // Early test episodes
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:episode-1773089043233-ppjyx0f99', // Test
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:episode-1773089770025-xe7ioudet', // Commissioners Meeting: March 4, 2026 (test)
 ];
 
 /**
