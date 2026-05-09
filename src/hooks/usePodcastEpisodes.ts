@@ -23,6 +23,7 @@ const HIDDEN_EPISODES = new Set([
   'episode-1773089043233-ppjyx0f99', // Test
   'episode-1773089770025-xe7ioudet', // Commissioners Meeting: March 4 (test)
   '65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County 3/19 (dup)
+  'fd9955bc-92a7-43fc-a8e9-877175cd42ae', // Commissioner's Meeting (wrong date)
 ]);
 
 /** Extended options for episode fetching with performance controls */
@@ -250,42 +251,29 @@ export function usePodcastEpisodes(options: ExtendedEpisodeSearchOptions = {}) {
       // Filter and validate events
       const validEvents = events.filter(validatePodcastEpisode);
 
-      // Deduplicate episodes by title - keep only the latest version of each title
-      const episodesByTitle = new Map<string, NostrEvent>();
-      const originalEvents = new Set<string>(); // Track original events that have been edited
+      // Deduplicate by d-tag identifier (addressable events), matching RSS behavior
+      const episodesByIdentifier = new Map<string, NostrEvent>();
+      const originalEvents = new Set<string>();
 
-      // First pass: identify edited events and their originals
       validEvents.forEach(event => {
         if (isEditEvent(event)) {
           const originalId = getOriginalEventId(event);
-          if (originalId) {
-            originalEvents.add(originalId);
-          }
+          if (originalId) originalEvents.add(originalId);
         }
       });
 
-      // Second pass: select the best version for each title
       validEvents.forEach(event => {
-        const title = event.tags.find(([name]) => name === 'title')?.[1] || '';
-        if (!title) return;
-
-        // Skip if this is an original event that has been edited
         if (originalEvents.has(event.id)) return;
-
-        const existing = episodesByTitle.get(title);
-        if (!existing) {
-          episodesByTitle.set(title, event);
-        } else {
-          // Keep the event with the latest created_at (most recent edit)
-          // This ensures we get the latest content while preserving pubdate for sorting
-          if (event.created_at > existing.created_at) {
-            episodesByTitle.set(title, event);
-          }
+        const identifier = event.tags.find(([n]) => n === 'd')?.[1];
+        if (!identifier) return;
+        const existing = episodesByIdentifier.get(identifier);
+        if (!existing || event.created_at > existing.created_at) {
+          episodesByIdentifier.set(identifier, event);
         }
       });
 
       // Fetch livestream start times for accurate publish dates
-      const dedupedEvents = Array.from(episodesByTitle.values());
+      const dedupedEvents = Array.from(episodesByIdentifier.values());
       const livestreamStarts = await fetchLivestreamStarts(nostr, dedupedEvents, signal);
 
       // Convert to podcast episodes and filter hidden ones
