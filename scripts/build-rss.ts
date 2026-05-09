@@ -43,6 +43,7 @@ const IGNORED_EPISODES = [
   // Early test episodes
   'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:episode-1773089043233-ppjyx0f99', // Test
   'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:episode-1773089770025-xe7ioudet', // Commissioners Meeting: March 4, 2026 (test)
+  'f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa:fd9955bc-92a7-43fc-a8e9-877175cd42ae', // Commissioner's Meeting (wrong date)
 ];
 
 /**

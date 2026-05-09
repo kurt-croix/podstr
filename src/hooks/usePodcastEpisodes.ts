@@ -68,9 +68,55 @@ function getOriginalEventId(event: NostrEvent): string | undefined {
 }
 
 /**
+ * Fetch livestream start times from Nostr relays
+ * Returns a map of `pubkey:dTag → starts timestamp`
+ */
+async function fetchLivestreamStarts(nostr: { query: (filters: any[], opts?: any) => Promise<NostrEvent[]> }, events: NostrEvent[], signal: AbortSignal): Promise<Map<string, number>> {
+  const startsMap = new Map<string, number>();
+  const livestreamPubkeys = new Set<string>();
+
+  for (const event of events) {
+    const lsTag = event.tags.find(([n]) => n === 'livestream')?.[1];
+    if (lsTag) {
+      const parts = lsTag.split(':');
+      if (parts.length >= 3 && parts[0] === '30311') {
+        livestreamPubkeys.add(parts[1]);
+      }
+    }
+  }
+
+  if (livestreamPubkeys.size === 0) return startsMap;
+
+  try {
+    const lsEvents = await nostr.query([{
+      kinds: [30311],
+      authors: Array.from(livestreamPubkeys),
+      limit: 200,
+    }], { signal });
+
+    for (const event of lsEvents) {
+      const dTag = event.tags.find(([n]) => n === 'd')?.[1];
+      const starts = event.tags.find(([n]) => n === 'starts')?.[1];
+      if (dTag && starts) {
+        const key = `${event.pubkey}:${dTag}`;
+        const ts = parseInt(starts, 10);
+        const existing = startsMap.get(key);
+        if (!existing || ts < existing) {
+          startsMap.set(key, ts);
+        }
+      }
+    }
+  } catch {
+    // Continue without livestream dates
+  }
+
+  return startsMap;
+}
+
+/**
  * Converts a validated Nostr event to a PodcastEpisode object
  */
-function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
+function eventToPodcastEpisode(event: NostrEvent, livestreamStarts?: Map<string, number>): PodcastEpisode {
   const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
 
   const title = tags.get('title')?.[0] || 'Untitled Episode';
@@ -99,11 +145,30 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   const durationStr = tags.get('duration')?.[0];
   const duration = durationStr ? parseInt(durationStr, 10) : undefined;
 
-  // Extract publication date from pubdate tag with fallback to created_at
+  // Extract publication date: prefer pubdate tag, then livestream starts, then created_at
   const pubdateStr = tags.get('pubdate')?.[0];
   let publishDate: Date;
+
+  let livestreamStart: number | undefined;
+  if (livestreamStarts) {
+    const livestreamTag = tags.get('livestream')?.[0];
+    if (livestreamTag) {
+      const parts = livestreamTag.split(':');
+      if (parts.length >= 3 && parts[0] === '30311') {
+        const key = `${parts[1]}:${parts[2]}`;
+        livestreamStart = livestreamStarts.get(key);
+      }
+    }
+  }
+
   try {
-    publishDate = pubdateStr ? new Date(pubdateStr) : new Date(event.created_at * 1000);
+    if (pubdateStr) {
+      publishDate = new Date(pubdateStr);
+    } else if (livestreamStart) {
+      publishDate = new Date(livestreamStart * 1000);
+    } else {
+      publishDate = new Date(event.created_at * 1000);
+    }
   } catch {
     publishDate = new Date(event.created_at * 1000);
   }
@@ -219,9 +284,13 @@ export function usePodcastEpisodes(options: ExtendedEpisodeSearchOptions = {}) {
         }
       });
 
+      // Fetch livestream start times for accurate publish dates
+      const dedupedEvents = Array.from(episodesByTitle.values());
+      const livestreamStarts = await fetchLivestreamStarts(nostr, dedupedEvents, signal);
+
       // Convert to podcast episodes and filter hidden ones
-      const validEpisodes = Array.from(episodesByTitle.values())
-        .map(eventToPodcastEpisode)
+      const validEpisodes = dedupedEvents
+        .map(e => eventToPodcastEpisode(e, livestreamStarts))
         .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Fetch zap data for all episodes in a single query (optional for performance)
@@ -362,51 +431,53 @@ export function useLatestEpisode() {
   return useQuery({
     queryKey: ['podcast-episode-latest'],
     queryFn: async (context) => {
-      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(8000)]);
 
-      // Fetch only a small batch - Nostr returns newest first by default
+      // Fetch more to account for hidden test episodes
       const events = await nostr.query([{
         kinds: [PODCAST_KINDS.EPISODE],
         authors: [getCreatorPubkeyHex()],
-        limit: 5, // Fetch a few to account for possible duplicates/edits
+        limit: 20,
       }], { signal });
 
       // Filter and validate events
       const validEvents = events.filter(validatePodcastEpisode);
-      if (validEvents.length === 0) return null;
+
+      // Filter hidden episodes
+      const visibleEvents = validEvents.filter(event => {
+        const dTag = event.tags.find(([n]) => n === 'd')?.[1];
+        return !dTag || !HIDDEN_EPISODES.has(dTag);
+      });
+
+      if (visibleEvents.length === 0) return null;
 
       // Handle deduplication for the small set
       const originalEvents = new Set<string>();
-      validEvents.forEach(event => {
+      visibleEvents.forEach(event => {
         if (isEditEvent(event)) {
           const originalId = getOriginalEventId(event);
           if (originalId) originalEvents.add(originalId);
         }
       });
 
-      // Find the latest valid episode (by pubdate, not created_at)
+      const candidates = visibleEvents.filter(e => !originalEvents.has(e.id));
+
+      // Fetch livestream starts for accurate dates
+      const livestreamStarts = await fetchLivestreamStarts(nostr, candidates, signal);
+
+      // Find the latest valid episode
       let latestEvent: NostrEvent | null = null;
       let latestPubdate = 0;
 
-      for (const event of validEvents) {
-        if (originalEvents.has(event.id)) continue; // Skip edited originals
-
-        // Skip hidden test/duplicate episodes
-        const dTag = event.tags.find(([n]) => n === 'd')?.[1];
-        if (dTag && HIDDEN_EPISODES.has(dTag)) continue;
-
-        const pubdateStr = event.tags.find(([name]) => name === 'pubdate')?.[1];
-        const pubdate = pubdateStr 
-          ? new Date(pubdateStr).getTime() 
-          : event.created_at * 1000;
-
-        if (!latestEvent || pubdate > latestPubdate) {
+      for (const event of candidates) {
+        const ep = eventToPodcastEpisode(event, livestreamStarts);
+        if (ep.publishDate.getTime() > latestPubdate) {
           latestEvent = event;
-          latestPubdate = pubdate;
+          latestPubdate = ep.publishDate.getTime();
         }
       }
 
-      return latestEvent ? eventToPodcastEpisode(latestEvent) : null;
+      return latestEvent ? eventToPodcastEpisode(latestEvent, livestreamStarts) : null;
     },
     staleTime: 60000, // 1 minute
   });
@@ -464,9 +535,13 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
         }
       });
 
+      // Fetch livestream starts for accurate dates
+      const dedupedInfinite = Array.from(episodesByIdentifier.values());
+      const livestreamStarts = await fetchLivestreamStarts(nostr, dedupedInfinite, signal);
+
       // Convert to podcast episodes and filter hidden ones
-      const episodes = Array.from(episodesByIdentifier.values())
-        .map(eventToPodcastEpisode)
+      const episodes = dedupedInfinite
+        .map(e => eventToPodcastEpisode(e, livestreamStarts))
         .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Sort by publishDate descending
