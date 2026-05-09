@@ -238,7 +238,7 @@ export function usePodcastEpisodes(options: ExtendedEpisodeSearchOptions = {}) {
   return useQuery({
     queryKey: ['podcast-episodes', options],
     queryFn: async (context) => {
-      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(10000)]);
+      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(15000)]);
 
       // Build query filter with optional cursor-based pagination
       const events = await nostr.query([{
@@ -272,9 +272,10 @@ export function usePodcastEpisodes(options: ExtendedEpisodeSearchOptions = {}) {
         }
       });
 
-      // Fetch livestream start times for accurate publish dates
+      // Fetch livestream start times for accurate publish dates (separate timeout)
       const dedupedEvents = Array.from(episodesByIdentifier.values());
-      const livestreamStarts = await fetchLivestreamStarts(nostr, dedupedEvents, signal);
+      const lsSignal = AbortSignal.timeout(8000);
+      const livestreamStarts = await fetchLivestreamStarts(nostr, dedupedEvents, lsSignal);
 
       // Convert to podcast episodes and filter hidden ones
       const validEpisodes = dedupedEvents
