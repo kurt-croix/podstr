@@ -39,7 +39,7 @@ function NostrProvider(props: NostrProviderProps) {
       config.relayUrl,
       ...multiRelayUrls.current.filter(url => url !== config.relayUrl)
     ].slice(0, 5); // Limit to 5 relays max for good coverage
-    console.log('[Nostr] Relays:', multiRelayUrls.current.map((url, i) =>
+    console.log('[Nostr] Relays:', multiRelayUrls.current.map((url) =>
       `${url}${url === config.relayUrl ? ' (selected)' : ''}`
     ).join(', '));
     queryClient.resetQueries();
@@ -68,7 +68,7 @@ function NostrProvider(props: NostrProviderProps) {
   }
 
   return (
-    <NostrContext.Provider value={{ nostr: pool.current }}>
+    <NostrContext.Provider value={{ nostr: pool.current } as unknown as Parameters<typeof NostrContext.Provider>[0]['value']}>
       {children}
     </NostrContext.Provider>
   );

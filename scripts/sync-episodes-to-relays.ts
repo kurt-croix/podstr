@@ -5,6 +5,10 @@
  * for the updated episodes and ensure every relay has the most complete version.
  * Finds the event version with the most tags and republishes it to relays that
  * are missing transcript or description tags.
+ *
+ * Also injects `pubdate` tags derived from livestream `starts` timestamps so
+ * the correct original publish date travels with the episode event itself.
+ * This eliminates the need for runtime livestream lookups in the frontend.
  */
 
 import { nip19 } from 'nostr-tools';
@@ -103,6 +107,72 @@ function hasTags(event: NostrEvent, tagNames: string[]): boolean {
   return tagNames.every(name => event.tags.some(([n]) => n === name));
 }
 
+/**
+ * Fetch livestream events (kind 30311) and build a map of `pubkey:dTag → starts timestamp`.
+ * Extracts livestream author pubkeys from episode events' "livestream" tags
+ * since livestreams are authored by a different key than podcast episodes.
+ */
+async function fetchLivestreamStarts(
+  episodeEvents: NostrEvent[],
+): Promise<Map<string, number>> {
+  const startsMap = new Map<string, number>();
+
+  // Extract unique livestream author pubkeys from episode livestream tags
+  const livestreamPubkeys = new Set<string>();
+  for (const event of episodeEvents) {
+    const lsTag = event.tags.find(([n]) => n === 'livestream')?.[1];
+    if (lsTag) {
+      const parts = lsTag.split(':');
+      if (parts.length >= 3 && parts[0] === '30311') {
+        livestreamPubkeys.add(parts[1]);
+      }
+    }
+  }
+
+  if (livestreamPubkeys.size === 0) {
+    console.log('📅 No livestream tags found in episodes');
+    return startsMap;
+  }
+
+  const pubkeyArray = Array.from(livestreamPubkeys);
+  console.log(`📅 Fetching livestreams from ${pubkeyArray.length} author(s)`);
+
+  // Query each relay for kind 30311 events
+  for (const relayUrl of PUBLISH_RELAYS) {
+    try {
+      const events = await queryRelay(relayUrl, {
+        kinds: [30311],
+        authors: pubkeyArray,
+        limit: 200,
+      });
+      for (const event of events) {
+        const dTag = event.tags.find(([n]) => n === 'd')?.[1];
+        const starts = event.tags.find(([n]) => n === 'starts')?.[1];
+        if (dTag && starts) {
+          const key = `${event.pubkey}:${dTag}`;
+          const ts = parseInt(starts, 10);
+          // Keep earliest starts if multiple versions exist
+          const existing = startsMap.get(key);
+          if (!existing || ts < existing) {
+            startsMap.set(key, ts);
+          }
+        }
+      }
+      console.log(`   ${relayUrl}: ${events.length} livestream events`);
+    } catch {
+      console.log(`   ${relayUrl}: failed to fetch livestreams`);
+    }
+  }
+
+  console.log(`📅 Built livestream starts map with ${startsMap.size} entries`);
+  return startsMap;
+}
+
+/** Format a unix timestamp as RFC2822 date string */
+function formatRFC2822(ts: number): string {
+  return new Date(ts * 1000).toUTCString();
+}
+
 async function main() {
   console.log('🔄 Syncing episodes to all relays...');
 
@@ -169,6 +239,16 @@ async function main() {
     process.exit(0);
   }
 
+  // Fetch livestream starts to build pubdate tags
+  // First fetch all episode events to extract livestream pubkeys
+  console.log('📅 Fetching episode events for livestream correlation...');
+  const allEpisodeEvents = await queryRelay('wss://nos.lol', {
+    kinds: [30054],
+    authors: [authorPubkey],
+    limit: 200,
+  });
+  const livestreamStarts = await fetchLivestreamStarts(allEpisodeEvents);
+
   let syncCount = 0;
   let skipCount = 0;
   let failCount = 0;
@@ -189,7 +269,6 @@ async function main() {
         relayResults.set(relayUrl, events[0] || null);
         const event = events[0];
         if (event) {
-          const tags = event.tags.map(([n]) => n).join(', ');
           const hasTrans = event.tags.some(([n]) => n === 'transcript');
           const hasDesc = event.tags.some(([n]) => n === 'description');
           console.log(`   ${relayUrl}: found (trans:${hasTrans} desc:${hasDesc})`);
@@ -225,15 +304,42 @@ async function main() {
       }
     }
 
+    // Inject pubdate tag from livestream starts if available
+    const livestreamTag = mostComplete.tags.find(([n]) => n === 'livestream')?.[1];
+    if (livestreamTag && livestreamStarts.size > 0) {
+      const parts = livestreamTag.split(':');
+      if (parts.length >= 3 && parts[0] === '30311') {
+        const lsKey = `${parts[1]}:${parts[2]}`;
+        const startsTs = livestreamStarts.get(lsKey);
+        if (startsTs) {
+          const pubdateStr = formatRFC2822(startsTs);
+          const existingPubdateIdx = mostComplete.tags.findIndex(([n]) => n === 'pubdate');
+          const existingPubdate = existingPubdateIdx >= 0 ? mostComplete.tags[existingPubdateIdx][1] : undefined;
+          if (existingPubdate !== pubdateStr) {
+            if (existingPubdateIdx >= 0) {
+              mostComplete.tags[existingPubdateIdx] = ['pubdate', pubdateStr];
+            } else {
+              mostComplete.tags.push(['pubdate', pubdateStr]);
+            }
+            console.log(`   📅 Injected pubdate: ${pubdateStr} (from livestream starts)`);
+          }
+        }
+      }
+    }
+
     const requiredTags = ['transcript', 'description'];
     const hasAll = hasTags(mostComplete, requiredTags);
-    console.log(`   📋 Most complete version: ${mostComplete.id.substring(0, 8)}... (tags: ${mostComplete.tags.length}, has all: ${hasAll})`);
+    const hasPubdate = mostComplete.tags.some(([n]) => n === 'pubdate');
+    console.log(`   📋 Most complete version: ${mostComplete.id.substring(0, 8)}... (tags: ${mostComplete.tags.length}, has all: ${hasAll}, pubdate: ${hasPubdate})`);
 
-    // Check which relays need updating
+    // Check which relays need updating — missing tags or missing pubdate
     const relaysNeedingSync = PUBLISH_RELAYS.filter(relayUrl => {
       const event = relayResults.get(relayUrl);
       if (!event) return true; // Missing entirely
-      return !hasTags(event, requiredTags); // Missing required tags
+      if (!hasTags(event, requiredTags)) return true; // Missing required tags
+      // Check if relay's version has the pubdate tag
+      if (hasPubdate && !event.tags.some(([n]) => n === 'pubdate')) return true;
+      return false;
     });
 
     if (relaysNeedingSync.length === 0) {
@@ -276,7 +382,6 @@ async function main() {
       syncCount++;
     } else if (relayFailures > 0) {
       failCount++;
-    } else {
     } else {
       syncCount++;
     }
