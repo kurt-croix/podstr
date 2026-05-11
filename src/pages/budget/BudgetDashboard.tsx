@@ -25,6 +25,10 @@ function fmt(n: number): string {
   const s = n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   return n < 0 ? s : s;
 }
+function fmtNeg(n: number): string {
+  const s = n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  return n < 0 ? `<span style="color:${COLORS.danger}">${s}</span>` : s;
+}
 function fmtP(n: number): string {
   const s = (n * 100).toFixed(1) + '%';
   return n < 0 ? `<span style="color:${COLORS.danger}">${s}</span>` : s;
@@ -169,7 +173,7 @@ export default function BudgetDashboard() {
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label(ctx) { const y: number = (ctx.parsed as { y: number })?.y ?? 0; return ctx.datasetIndex === 2 ? 'Net: ' + (y >= 0 ? '+' : '') + y.toFixed(1) + '%' : ctx.dataset?.label + ': $' + (y / 1e6).toFixed(2) + 'M'; } } } },
+          plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label(ctx: any) { const y: number = ctx.parsed?.y ?? 0; return ctx.datasetIndex === 2 ? 'Net: ' + (y >= 0 ? '+' : '') + y.toFixed(1) + '%' : ctx.dataset?.label + ': $' + (y / 1e6).toFixed(2) + 'M'; } } } },
           scales: { x: { ticks: { display: false } }, y: { type: 'logarithmic', position: 'left', ticks: { callback: (v: number) => logTick(v), maxTicksLimit: 5 }, title: { display: true, text: 'Amount ($) (log)' } }, y2: { position: 'right', min: -50, max: 50, ticks: { callback: (v: number) => v + '%' }, title: { display: true, text: 'Net % of Revenue' }, grid: { drawOnChartArea: false } } }
         }
       });
@@ -355,7 +359,7 @@ export default function BudgetDashboard() {
             const { ctx } = chart; const meta = chart.getDatasetMeta(0);
             meta.data.forEach((arc, i) => {
               const pct = (bVals[i] / bTotal * 100).toFixed(1) + '%';
-              const pos = (arc as unknown as { tooltipPosition: (opts?: Record<string, unknown>) => { x: number; y: number } }).tooltipPosition();
+              const pos = arc.tooltipPosition({} as any);
               ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
               ctx.font = 'bold 11px ui-sans-serif,system-ui,sans-serif';
               ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
@@ -470,7 +474,19 @@ export default function BudgetDashboard() {
         .filters input { padding:7px 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:0.88em; width:160px; }
         .filters button { align-self:flex-end; background:#e60000; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:600; }
         .filters button:hover { background:#cc0000; }
-        @media (max-width:900px) { .grid { grid-template-columns:1fr; } .kpi-grid { grid-template-columns:1fr 1fr; } }
+        @media (max-width:900px) {
+        .grid { grid-template-columns:1fr; gap:10px; padding:0 12px; }
+        .kpi-grid { grid-template-columns:1fr 1fr; gap:8px; padding:0 12px; }
+        .card { padding:10px; }
+        .card canvas { max-height:220px; }
+        .card h2 { font-size:0.85em; margin-bottom:6px; }
+        .filters { flex-direction:column; gap:6px; }
+        .filters input { width:100%; }
+      }
+      @media (max-width:480px) {
+        .kpi-grid { grid-template-columns:1fr; }
+        .card canvas { max-height:180px; }
+      }
       `}</style>
 
       {/* Global Filters */}
@@ -489,7 +505,7 @@ export default function BudgetDashboard() {
         <div className="card">
           <h2>Monthly Revenue vs Expenses</h2>
           <div style={{ height: 28 }} /> {/* Spacer to match accounts card filter row */}
-          <canvas ref={monthlyRef} style={{ maxHeight: 300 }} />
+          <canvas ref={monthlyRef} style={{ maxHeight: 300, width: '100%' }} />
         </div>
 
         <div className="card">
@@ -503,7 +519,7 @@ export default function BudgetDashboard() {
               <option value="%">% Over</option>
             </select></label>
           </div>
-          <canvas ref={overBudgetRef} style={{ maxHeight: 300 }} />
+          <canvas ref={overBudgetRef} style={{ maxHeight: 300, width: '100%' }} />
         </div>
 
         {/* Row 2: Anomalous Transactions */}
@@ -546,12 +562,12 @@ export default function BudgetDashboard() {
         {/* Row 5: Distribution + Day Volume */}
         <div className="card">
           <h2>Expense Amount Distribution</h2>
-          <canvas ref={donutRef} style={{ width:'100%', height:340 }} />
+          <canvas ref={donutRef} style={{ width:'100%', height: 'min(340px, 50vw)' }} />
         </div>
 
         <div className="card">
           <h2>Spending Volume by Day of Month</h2>
-          <canvas ref={dayVolRef} style={{ maxHeight: 300 }} />
+          <canvas ref={dayVolRef} style={{ maxHeight: 300, width: '100%' }} />
         </div>
       </div>
     </BudgetLayout>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen, Sun, Moon } from 'lucide-react';
+import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen, Sun, Moon, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
@@ -61,6 +61,12 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
   ];
 
   const secondaryItems = [
+    {
+      path: '/budget/dashboard',
+      icon: DollarSign,
+      label: 'Budget',
+      description: 'Ray County FY2025'
+    },
     {
       path: '/about',
       icon: User,
