@@ -159,12 +159,11 @@ export function computeOverBudget(
   return Object.entries(acctActual)
     .filter(([, d]) => {
       if (d.type === 'Revenue') return false;
-      const budget = budgetMap.get(acctActual[Object.keys(acctActual).find(k => acctActual[k] === d)?.[0] ?? ''] ?? '') ?? budgetMap.get(d.name);
-      // Match by acct_code in the full account format (e.g., "01-01-47000")
-      return budget !== undefined && budget > 0 && Math.abs(d.total) > budget;
+      const budget = budgetMap.get(d.name) ?? 0;
+      return budget > 0 && Math.abs(d.total) > budget;
     })
     .map(([ac, d]) => {
-      const budget = budgetMap.get(ac) ?? 0;
+      const budget = budgetMap.get(d.name) ?? budgetMap.get(ac) ?? 0;
       const actual = Math.abs(d.total);
       const over = actual - budget;
       return {
