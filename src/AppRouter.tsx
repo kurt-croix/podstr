@@ -10,6 +10,9 @@ import PublishEpisode from "./pages/PublishEpisode";
 import Studio from "./pages/Studio";
 import About from "./pages/About";
 import DebugAudio from "./pages/DebugAudio";
+import BudgetIndex from "./pages/budget/BudgetIndex";
+import BudgetDashboard from "./pages/budget/BudgetDashboard";
+import BudgetExplorer from "./pages/budget/BudgetExplorer";
 import { NIP19Page } from "./pages/NIP19Page";
 import NotFound from "./pages/NotFound";
 import { PersistentAudioPlayer } from "./components/audio/PersistentAudioPlayer";
@@ -28,6 +31,9 @@ export function AppRouter() {
         <Route path="/about" element={<About />} />
         <Route path="/articles" element={<Articles />} />
         <Route path="/debug-audio" element={<DebugAudio />} />
+        <Route path="/budget" element={<BudgetIndex />} />
+        <Route path="/budget/dashboard" element={<BudgetDashboard />} />
+        <Route path="/budget/explorer" element={<BudgetExplorer />} />
         {/* NIP-19 route for npub1, note1, naddr1, nevent1, nprofile1 */}
         <Route path="/:nip19" element={<NIP19Page />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
