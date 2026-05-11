@@ -25,10 +25,6 @@ function fmt(n: number): string {
   const s = n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   return n < 0 ? s : s;
 }
-function fmtNeg(n: number): string {
-  const s = n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  return n < 0 ? `<span style="color:${COLORS.danger}">${s}</span>` : s;
-}
 function fmtP(n: number): string {
   const s = (n * 100).toFixed(1) + '%';
   return n < 0 ? `<span style="color:${COLORS.danger}">${s}</span>` : s;
@@ -173,7 +169,7 @@ export default function BudgetDashboard() {
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label(ctx: { datasetIndex: number; parsed: { y: number } }) { return ctx.datasetIndex === 2 ? 'Net: ' + (ctx.parsed.y >= 0 ? '+' : '') + ctx.parsed.y.toFixed(1) + '%' : (ctx as { dataset: { label: string } }).dataset.label + ': $' + (ctx.parsed.y / 1e6).toFixed(2) + 'M'; } } } },
+          plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label(ctx) { const y: number = (ctx.parsed as { y: number })?.y ?? 0; return ctx.datasetIndex === 2 ? 'Net: ' + (y >= 0 ? '+' : '') + y.toFixed(1) + '%' : ctx.dataset?.label + ': $' + (y / 1e6).toFixed(2) + 'M'; } } } },
           scales: { x: { ticks: { display: false } }, y: { type: 'logarithmic', position: 'left', ticks: { callback: (v: number) => logTick(v), maxTicksLimit: 5 }, title: { display: true, text: 'Amount ($) (log)' } }, y2: { position: 'right', min: -50, max: 50, ticks: { callback: (v: number) => v + '%' }, title: { display: true, text: 'Net % of Revenue' }, grid: { drawOnChartArea: false } } }
         }
       });
@@ -359,11 +355,11 @@ export default function BudgetDashboard() {
             const { ctx } = chart; const meta = chart.getDatasetMeta(0);
             meta.data.forEach((arc, i) => {
               const pct = (bVals[i] / bTotal * 100).toFixed(1) + '%';
-              const { x, y } = arc.tooltipPosition();
+              const pos = (arc as unknown as { tooltipPosition: (opts?: Record<string, unknown>) => { x: number; y: number } }).tooltipPosition();
               ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
               ctx.font = 'bold 11px ui-sans-serif,system-ui,sans-serif';
               ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
-              ctx.fillText(pct, x, y);
+              ctx.fillText(pct, pos.x ?? 0, pos.y ?? 0);
               ctx.restore();
             });
           }
