@@ -1,5 +1,5 @@
+import { Layout } from '@/components/Layout';
 import { useSeoMeta } from '@unhead/react';
-import { BudgetLayout } from '@/components/budget/BudgetLayout';
 
 /** Loads the static budget_explorer.html in an iframe */
 export default function BudgetExplorer() {
@@ -9,13 +9,13 @@ export default function BudgetExplorer() {
   });
 
   return (
-    <BudgetLayout>
+    <Layout>
       <iframe
         src="/podstr/budget/budget_explorer.html"
         title="Budget Explorer"
         className="w-full border-0"
-        style={{ height: 'calc(100vh - 140px)', minHeight: '800px' }}
+        style={{ height: 'calc(100vh - 70px)', minHeight: '800px' }}
       />
-    </BudgetLayout>
+    </Layout>
   );
 }
