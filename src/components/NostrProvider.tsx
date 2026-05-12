@@ -21,14 +21,22 @@ function NostrProvider(props: NostrProviderProps) {
   const relayUrl = useRef<string>(config.relayUrl);
 
   // Define multiple relays prioritized by speed and reliability
-  // More relays = better coverage when some are down
+  // All known relays — used for publishing to ensure broad distribution
+  const allRelayUrls = useRef<string[]>([
+    'wss://relay.damus.io',      // ~120ms query response
+    'wss://relay.primal.net',    // ~175ms query response
+    'wss://nos.lol',             // ~180ms query response
+    'wss://relay.nostr.band',    // Slow but good coverage
+    'wss://relay.ditto.pub',     // Slow but covers Ditto ecosystem
+    'wss://nostr.wine',          // Slow but well-known
+  ]);
+
+  // Fast relays only — used for reads. NPool.query() waits for ALL relays
+  // to EOSE before returning, so slow relays block every query.
   const multiRelayUrls = useRef<string[]>([
-    'wss://relay.primal.net',    // Fast and reliable
-    'wss://relay.damus.io',      // Good uptime
-    'wss://nos.lol',             // Popular relay
-    'wss://relay.ditto.pub',     // Ditto / shosho.live
-    'wss://relay.nostr.band',    // Large relay, good coverage
-    'wss://nostr.wine',          // Well-known relay
+    'wss://relay.damus.io',      // ~120ms query response
+    'wss://relay.primal.net',    // ~175ms query response
+    'wss://nos.lol',             // ~180ms query response
   ]);
 
   // Update refs when config changes
@@ -38,7 +46,7 @@ function NostrProvider(props: NostrProviderProps) {
     multiRelayUrls.current = [
       config.relayUrl,
       ...multiRelayUrls.current.filter(url => url !== config.relayUrl)
-    ].slice(0, 5); // Limit to 5 relays max for good coverage
+    ].slice(0, 3); // Max 3 fast relays — more = slower queries
     console.log('[Nostr] Relays:', multiRelayUrls.current.map((url) =>
       `${url}${url === config.relayUrl ? ' (selected)' : ''}`
     ).join(', '));
@@ -61,8 +69,8 @@ function NostrProvider(props: NostrProviderProps) {
         return relayMap;
       },
       eventRouter(_event: NostrEvent) {
-        // Publish to all configured relays for better distribution
-        return multiRelayUrls.current;
+        // Publish to ALL relays (including slow ones) for broad distribution
+        return allRelayUrls.current;
       },
     });
   }
