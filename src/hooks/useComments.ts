@@ -2,12 +2,14 @@ import { NKinds, NostrEvent, NostrFilter } from '@nostrify/nostrify';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 
-export function useComments(root: NostrEvent | URL, limit?: number) {
+export function useComments(root?: NostrEvent | URL, limit?: number) {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['comments', root instanceof URL ? root.toString() : root.id, limit],
+    queryKey: ['comments', root ? (root instanceof URL ? root.toString() : root.id) : 'none', limit],
     queryFn: async (c) => {
+      if (!root) return { allComments: [], topLevelComments: [], getDescendants: () => [], getDirectReplies: () => [] };
+
       const filter: NostrFilter = { kinds: [1111] };
 
       if (root instanceof URL) {

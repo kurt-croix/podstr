@@ -29,5 +29,7 @@ export function useAuthor(pubkey: string | undefined) {
       }
     },
     retry: 3,
+    staleTime: 300000, // 5 minutes — profile metadata rarely changes
+    gcTime: 1800000, // 30 minutes — keep cached data longer
   });
 }

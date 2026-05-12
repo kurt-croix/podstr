@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Clock, Calendar, MessageCircle, Share } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -25,7 +25,7 @@ interface EpisodeCardProps {
   className?: string;
 }
 
-export function EpisodeCard({
+export const EpisodeCard = memo(function EpisodeCard({
   episode,
   showPlayer: _showPlayer = false,
   showComments = false,
@@ -66,8 +66,8 @@ export function EpisodeCard({
     sig: ''
   };
 
-  // Get comment data for count - fallback to episode.commentCount if available
-  const { data: commentsData } = useComments(episodeEvent);
+  // Get comment data for count - defer fetching until comments section is toggled
+  const { data: commentsData } = useComments(commentsVisible ? episodeEvent : undefined);
   const commentCount = commentsData?.topLevelComments?.length || episode.commentCount || 0;
 
   // Generate naddr for episode link with relay hints (episodes are addressable events)
@@ -102,6 +102,7 @@ export function EpisodeCard({
             <img
               src={episode.imageUrl}
               alt={episode.title}
+              loading="lazy"
               className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
             />
           )}
@@ -239,4 +240,4 @@ export function EpisodeCard({
     </Card>
     </Link>
   );
-}
+});

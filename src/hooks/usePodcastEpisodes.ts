@@ -420,13 +420,13 @@ export function useLatestEpisode() {
   return useQuery({
     queryKey: ['podcast-episode-latest'],
     queryFn: async (context) => {
-      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(8000)]);
+      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(5000)]);
 
-      // Fetch more to account for hidden test episodes
+      // Episodes have pubdate tags — no need for livestream starts query
       const events = await nostr.query([{
         kinds: [PODCAST_KINDS.EPISODE],
         authors: [getCreatorPubkeyHex()],
-        limit: 20,
+        limit: 10, // Only need 1, 10 covers hidden test episodes
       }], { signal });
 
       // Filter and validate events
@@ -451,24 +451,22 @@ export function useLatestEpisode() {
 
       const candidates = visibleEvents.filter(e => !originalEvents.has(e.id));
 
-      // Fetch livestream starts for accurate dates
-      const livestreamStarts = await fetchLivestreamStarts(nostr, candidates, signal);
-
+      // Use pubdate tags directly — no livestream starts query needed
       // Find the latest valid episode
       let latestEvent: NostrEvent | null = null;
       let latestPubdate = 0;
 
       for (const event of candidates) {
-        const ep = eventToPodcastEpisode(event, livestreamStarts);
+        const ep = eventToPodcastEpisode(event);
         if (ep.publishDate.getTime() > latestPubdate) {
           latestEvent = event;
           latestPubdate = ep.publishDate.getTime();
         }
       }
 
-      return latestEvent ? eventToPodcastEpisode(latestEvent, livestreamStarts) : null;
+      return latestEvent ? eventToPodcastEpisode(latestEvent) : null;
     },
-    staleTime: 60000, // 1 minute
+    staleTime: 180000, // 3 minutes — episodes don't change frequently
   });
 }
 
@@ -486,7 +484,7 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
     queryKey: ['podcast-episodes-infinite', options],
     initialPageParam: undefined as number | undefined,
     queryFn: async ({ pageParam, signal: querySignal }) => {
-      const signal = AbortSignal.any([querySignal, AbortSignal.timeout(8000)]);
+      const signal = AbortSignal.any([querySignal, AbortSignal.timeout(5000)]);
       const limit = options.limit || EPISODES_PER_PAGE;
 
       // Fetch episodes with cursor
@@ -526,13 +524,12 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
         }
       });
 
-      // Fetch livestream starts for accurate dates
+      // Use pubdate tags directly — no livestream starts query needed
       const dedupedInfinite = Array.from(episodesByIdentifier.values());
-      const livestreamStarts = await fetchLivestreamStarts(nostr, dedupedInfinite, signal);
 
       // Convert to podcast episodes and filter hidden ones
       const episodes = dedupedInfinite
-        .map(e => eventToPodcastEpisode(e, livestreamStarts))
+        .map(e => eventToPodcastEpisode(e))
         .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Sort by publishDate descending
@@ -609,7 +606,7 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
       };
     },
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
-    staleTime: 60000,
+    staleTime: 180000, // 3 minutes
   });
 }
 
