@@ -11,7 +11,7 @@ import { useInfiniteEpisodes, usePodcastEpisodes } from '@/hooks/usePodcastEpiso
 import type { PodcastEpisode, EpisodeSearchOptions } from '@/types/podcast';
 
 /** Lazy wrapper — only mounts EpisodeCard when scrolled into view */
-function LazyEpisodeCard({ episode, onPlayEpisode }: { episode: PodcastEpisode; onPlayEpisode?: (episode: PodcastEpisode) => void }) {
+function LazyEpisodeCard({ episode, onPlayEpisode, index }: { episode: PodcastEpisode; onPlayEpisode?: (episode: PodcastEpisode) => void; index: number }) {
   const { ref, inView } = useInView({ triggerOnce: true, rootMargin: '200px' });
 
   if (!inView) {
@@ -33,7 +33,11 @@ function LazyEpisodeCard({ episode, onPlayEpisode }: { episode: PodcastEpisode; 
     );
   }
 
-  return <EpisodeCard episode={episode} onPlayEpisode={onPlayEpisode} />;
+  return (
+    <div style={{ animationDelay: `${index * 75}ms` }} className="animate-[fadeInUp_300ms_ease-out_both]">
+      <EpisodeCard episode={episode} onPlayEpisode={onPlayEpisode} />
+    </div>
+  );
 }
 
 interface EpisodeListProps {
@@ -211,11 +215,12 @@ export function EpisodeList({
         </div>
       ) : episodes && episodes.length > 0 ? (
         <div className="space-y-6">
-          {episodes.map((episode) => (
+          {episodes.map((episode, index) => (
             <LazyEpisodeCard
               key={episode.id}
               episode={episode}
               onPlayEpisode={handlePlayEpisode}
+              index={index}
             />
           ))}
           

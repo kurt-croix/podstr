@@ -21,6 +21,7 @@ const HIDDEN_EPISODES = new Set([
   '994031fc-f00f-43d6-bc57-54c7f1353aad', // Untitled
   '2618edaf-a281-4718-9f6a-2cbd86e70496', // Untitled
   'episode-1773089043233-ppjyx0f99', // Test
+  'episode-1773089043233-ppj3h0ysp', // Test (variant d-tag)
   'episode-1773089770025-xe7ioudet', // Commissioners Meeting: March 4 (test)
   '65fae244-4478-41b8-beaf-fca3f345aa60', // Ray County 3/19 (dup)
   'fd9955bc-92a7-43fc-a8e9-877175cd42ae', // Commissioner's Meeting (wrong date)
@@ -422,11 +423,13 @@ export function useLatestEpisode() {
     queryFn: async (context) => {
       const signal = AbortSignal.any([context.signal, AbortSignal.timeout(5000)]);
 
-      // Episodes have pubdate tags — no need for livestream starts query
+      // Fetch enough to include real episodes after filtering hidden test ones.
+      // Many hidden test episodes share the same created_at as real ones, so
+      // a low limit can exclude newer real episodes from the results.
       const events = await nostr.query([{
         kinds: [PODCAST_KINDS.EPISODE],
         authors: [getCreatorPubkeyHex()],
-        limit: 10, // Only need 1, 10 covers hidden test episodes
+        limit: 30,
       }], { signal });
 
       // Filter and validate events
@@ -456,7 +459,7 @@ export function useLatestEpisode() {
         !e.tags.some(([n]) => n === 'pubdate')
       );
       const livestreamStarts = needsLivestreamFallback
-        ? await fetchLivestreamStarts(nostr, candidates, AbortSignal.timeout(3000)).catch(() => new Map<string, number>())
+        ? await fetchLivestreamStarts(nostr, candidates, AbortSignal.timeout(5000)).catch(() => new Map<string, number>())
         : new Map<string, number>();
 
       // Find the latest valid episode
@@ -537,7 +540,7 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
         !e.tags.some(([n]) => n === 'pubdate')
       );
       const livestreamStarts = needsLivestream
-        ? await fetchLivestreamStarts(nostr, dedupedInfinite, AbortSignal.timeout(3000)).catch(() => new Map<string, number>())
+        ? await fetchLivestreamStarts(nostr, dedupedInfinite, AbortSignal.timeout(5000)).catch(() => new Map<string, number>())
         : new Map<string, number>();
 
       // Convert to podcast episodes and filter hidden ones
