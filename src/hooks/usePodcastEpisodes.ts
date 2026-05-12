@@ -422,7 +422,6 @@ export function useLatestEpisode() {
     queryFn: async (context) => {
       const signal = AbortSignal.any([context.signal, AbortSignal.timeout(5000)]);
 
-      // Episodes have pubdate tags — no need for livestream starts query
       const events = await nostr.query([{
         kinds: [PODCAST_KINDS.EPISODE],
         authors: [getCreatorPubkeyHex()],
@@ -451,20 +450,29 @@ export function useLatestEpisode() {
 
       const candidates = visibleEvents.filter(e => !originalEvents.has(e.id));
 
-      // Use pubdate tags directly — no livestream starts query needed
+      // Check if any candidate is missing a pubdate tag — need livestream starts as fallback
+      const needsLivestreamFallback = candidates.some(e =>
+        !e.tags.some(([n]) => n === 'pubdate')
+      );
+
+      // Fetch livestream starts with a short separate timeout (fallback for missing pubdate tags)
+      const livestreamStarts = needsLivestreamFallback
+        ? await fetchLivestreamStarts(nostr, candidates, AbortSignal.timeout(3000)).catch(() => new Map())
+        : new Map<string, number>();
+
       // Find the latest valid episode
       let latestEvent: NostrEvent | null = null;
       let latestPubdate = 0;
 
       for (const event of candidates) {
-        const ep = eventToPodcastEpisode(event);
+        const ep = eventToPodcastEpisode(event, livestreamStarts);
         if (ep.publishDate.getTime() > latestPubdate) {
           latestEvent = event;
           latestPubdate = ep.publishDate.getTime();
         }
       }
 
-      return latestEvent ? eventToPodcastEpisode(latestEvent) : null;
+      return latestEvent ? eventToPodcastEpisode(latestEvent, livestreamStarts) : null;
     },
     staleTime: 180000, // 3 minutes — episodes don't change frequently
   });
@@ -524,12 +532,18 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
         }
       });
 
-      // Use pubdate tags directly — no livestream starts query needed
+      // Use pubdate tags directly; fetch livestream starts only as fallback for missing pubdates
       const dedupedInfinite = Array.from(episodesByIdentifier.values());
+      const needsLivestreamFallback = dedupedInfinite.some(e =>
+        !e.tags.some(([n]) => n === 'pubdate')
+      );
+      const livestreamStarts = needsLivestreamFallback
+        ? await fetchLivestreamStarts(nostr, dedupedInfinite, AbortSignal.timeout(3000)).catch(() => new Map())
+        : new Map<string, number>();
 
       // Convert to podcast episodes and filter hidden ones
       const episodes = dedupedInfinite
-        .map(e => eventToPodcastEpisode(e))
+        .map(e => eventToPodcastEpisode(e, livestreamStarts))
         .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Sort by publishDate descending
