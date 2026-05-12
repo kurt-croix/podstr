@@ -451,20 +451,27 @@ export function useLatestEpisode() {
 
       const candidates = visibleEvents.filter(e => !originalEvents.has(e.id));
 
-      // Use pubdate tags directly — no livestream starts query needed
+      // Fetch livestream starts only when episodes are missing pubdate tags (fallback)
+      const needsLivestreamFallback = candidates.some(e =>
+        !e.tags.some(([n]) => n === 'pubdate')
+      );
+      const livestreamStarts = needsLivestreamFallback
+        ? await fetchLivestreamStarts(nostr, candidates, AbortSignal.timeout(3000)).catch(() => new Map<string, number>())
+        : new Map<string, number>();
+
       // Find the latest valid episode
       let latestEvent: NostrEvent | null = null;
       let latestPubdate = 0;
 
       for (const event of candidates) {
-        const ep = eventToPodcastEpisode(event);
+        const ep = eventToPodcastEpisode(event, livestreamStarts);
         if (ep.publishDate.getTime() > latestPubdate) {
           latestEvent = event;
           latestPubdate = ep.publishDate.getTime();
         }
       }
 
-      return latestEvent ? eventToPodcastEpisode(latestEvent) : null;
+      return latestEvent ? eventToPodcastEpisode(latestEvent, livestreamStarts) : null;
     },
     staleTime: 180000, // 3 minutes — episodes don't change frequently
   });
@@ -524,12 +531,18 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
         }
       });
 
-      // Use pubdate tags directly — no livestream starts query needed
+      // Fetch livestream starts only when episodes are missing pubdate tags (fallback)
       const dedupedInfinite = Array.from(episodesByIdentifier.values());
+      const needsLivestream = dedupedInfinite.some(e =>
+        !e.tags.some(([n]) => n === 'pubdate')
+      );
+      const livestreamStarts = needsLivestream
+        ? await fetchLivestreamStarts(nostr, dedupedInfinite, AbortSignal.timeout(3000)).catch(() => new Map<string, number>())
+        : new Map<string, number>();
 
       // Convert to podcast episodes and filter hidden ones
       const episodes = dedupedInfinite
-        .map(e => eventToPodcastEpisode(e))
+        .map(e => eventToPodcastEpisode(e, livestreamStarts))
         .filter(ep => !HIDDEN_EPISODES.has(ep.identifier));
 
       // Sort by publishDate descending
