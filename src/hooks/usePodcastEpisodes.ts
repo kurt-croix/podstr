@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
-import type { NostrEvent } from '@nostrify/nostrify';
+import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 import type { PodcastEpisode, EpisodeSearchOptions, EpisodeValue } from '@/types/podcast';
 import { getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
 import { extractZapAmount, validateZapEvent } from '@/lib/zapUtils';
@@ -72,7 +72,7 @@ function getOriginalEventId(event: NostrEvent): string | undefined {
  * Fetch livestream start times from Nostr relays
  * Returns a map of `pubkey:dTag → starts timestamp`
  */
-async function fetchLivestreamStarts(nostr: { query: (filters: any[], opts?: any) => Promise<NostrEvent[]> }, events: NostrEvent[], signal: AbortSignal): Promise<Map<string, number>> {
+async function fetchLivestreamStarts(nostr: { query: (filters: NostrFilter[], opts?: { signal?: AbortSignal }) => Promise<NostrEvent[]> }, events: NostrEvent[], signal: AbortSignal): Promise<Map<string, number>> {
   const startsMap = new Map<string, number>();
   const livestreamPubkeys = new Set<string>();
 
@@ -490,10 +490,12 @@ export function useInfiniteEpisodes(options: Omit<ExtendedEpisodeSearchOptions, 
       const limit = options.limit || EPISODES_PER_PAGE;
 
       // Fetch episodes with cursor
+      // Use generous limit to ensure all episodes are fetched even when many
+      // hidden/test episodes exist with the same created_at timestamp
       const events = await nostr.query([{
         kinds: [PODCAST_KINDS.EPISODE],
         authors: [getCreatorPubkeyHex()],
-        limit: limit + 5, // Fetch a few extra to account for duplicates
+        limit: Math.max(limit + 5, 50),
         ...(pageParam ? { until: pageParam } : {}),
       }], { signal });
 

@@ -350,11 +350,14 @@ async function main() {
 
     console.log(`   📡 Republishing to ${relaysNeedingSync.length} relay(s): ${relaysNeedingSync.join(', ')}`);
 
-    // Re-sign the most complete version with bumped created_at so relays accept it as newer
+    // Re-sign the most complete version.
+    // For addressable events, relays replace based on pubkey+kind+d-tag.
+    // Bump created_at by 1 from the original to ensure relays see this as newer
+    // without collapsing all events to the same timestamp.
     const signedEvent = await signer.signEvent({
       kind: mostComplete.kind,
       content: mostComplete.content,
-      created_at: Math.max(mostComplete.created_at + 1, Math.floor(Date.now() / 1000)),
+      created_at: mostComplete.created_at + 1,
       tags: mostComplete.tags,
     });
 
