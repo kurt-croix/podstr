@@ -57,6 +57,10 @@ export function BudgetLayout({ children }: BudgetLayoutProps) {
             <a href="/podstr/data/accounts.tsv" download className="text-[#e60000] text-xs underline">
               Accounts
             </a>
+            {' · '}
+            <a href="/podstr/data/2025-detail-vs-budget-report.pdf" download className="text-[#e60000] text-xs underline">
+              Full Budget Report (PDF)
+            </a>
           </div>
         </div>
       </div>
