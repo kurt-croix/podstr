@@ -147,12 +147,12 @@ export function computeOverBudget(
   txns: Transaction[],
   budgetMap: Map<string, number>,
 ): OverBudgetItem[] {
-  // Aggregate actual spending per acct_code
-  const acctActual: Record<string, { name: string; type: string; total: number }> = {};
+  // Aggregate actual spending per account (full code)
+  const acctActual: Record<string, { name: string; type: string; total: number; fund: string; acctCode: string }> = {};
 
   for (const t of txns) {
-    const ac = t.acct_code;
-    if (!acctActual[ac]) acctActual[ac] = { name: t.acct_name, type: t.acct_type, total: 0 };
+    const ac = t.account;
+    if (!acctActual[ac]) acctActual[ac] = { name: t.acct_name, type: t.acct_type, total: 0, fund: t.fund, acctCode: t.acct_code };
     acctActual[ac].total += t.amount;
   }
 
@@ -173,6 +173,7 @@ export function computeOverBudget(
         actual,
         over,
         pct: budget > 0 ? over / budget : 0,
+        id: `${d.fund}:${d.acctCode}`,
       };
     })
     .sort((a, b) => b.over - a.over);

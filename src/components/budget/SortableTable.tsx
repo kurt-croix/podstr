@@ -68,10 +68,10 @@ export function SortableTable<T>({
               >
                 {col.header}
                 {col.sort && (
-                  <span className="ml-1 opacity-50 text-[0.7em]">
+                  <span className="ml-1 text-[0.75em]">
                     {sortKey === col.key
-                      ? sortDir === 'asc' ? ' ↑' : ' ↓'
-                      : ' ↕'}
+                      ? sortDir === 'asc' ? ' ▲' : ' ▼'
+                      : ' ⇅'}
                   </span>
                 )}
               </th>

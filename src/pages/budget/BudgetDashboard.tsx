@@ -1,7 +1,8 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { Chart, registerables } from 'chart.js';
 import { BudgetLayout } from '@/components/budget/BudgetLayout';
+import { SortableTable, type Column, moneyCell } from '@/components/budget/SortableTable';
 import { useTransactions, useBudgetMap } from '@/lib/budget/data';
 import { computeKPIs } from '@/lib/budget/analytics';
 
@@ -78,10 +79,13 @@ export default function BudgetDashboard() {
   const [minZ, setMinZ] = useState(3);
   const [minTxn, setMinTxn] = useState(0);
 
-  // Anomaly/HHI table HTML
-  const [anomalyHtml, setAnomalyHtml] = useState('');
-  const [hhiHtml, setHhiHtml] = useState('');
-  const [vendorHtml, setVendorHtml] = useState('');
+  // Current filtered over-budget data (shared between chart and tooltip)
+  const overBudgetDataRef = useRef<{ name: string; budget: number; actual: number; over: number; pct: number; id: string }[]>([]);
+
+  // Anomaly/HHI/Vendor data for SortableTable
+  const [anomalies, setAnomalies] = useState<{ date: string; fund: string; account: string; acctCode: string; fullAccount: string; vendor: string; amount: number; az: number; fz: number }[]>([]);
+  const [hhiData, setHhiData] = useState<{ fund: string; name: string; count: number; hhi: number; spend: number; topVendor: string; topAmount: number; topPct: number }[]>([]);
+  const [vendorData, setVendorData] = useState<{ vendor: string; total: number; count: number }[]>([]);
 
   // Anomaly count
   const [anomalyCount, setAnomalyCount] = useState(0);
@@ -180,9 +184,9 @@ export default function BudgetDashboard() {
     }
 
     // 2. Accounts Over Budget
-    const acctActual: Record<string, { name: string; type: string; total: number }> = {};
+    const acctActual: Record<string, { name: string; type: string; total: number; fund: string; acctCode: string }> = {};
     tx.forEach(t => {
-      if (!acctActual[t.account]) acctActual[t.account] = { name: t.acct_name, type: t.acct_type, total: 0 };
+      if (!acctActual[t.account]) acctActual[t.account] = { name: t.acct_name, type: t.acct_type, total: 0, fund: t.fund, acctCode: t.acct_code };
       acctActual[t.account].total += t.amount;
     });
     const allOverBudget = Object.entries(acctActual)
@@ -195,7 +199,7 @@ export default function BudgetDashboard() {
         const budget = budgetMap.get(ac) ?? 0;
         const actual = Math.abs(d.total);
         const over = actual - budget;
-        return { name: d.name, budget, actual, over, pct: over / budget };
+        return { name: d.name, budget, actual, over, pct: over / budget, id: `${d.fund}:${d.acctCode}` };
       })
       .sort((a, b) => b.over - a.over);
 
@@ -207,9 +211,10 @@ export default function BudgetDashboard() {
       const filtered = allOverBudget.filter(d => d.over >= minOver2 && d.pct >= minPct2)
         .sort((a, b) => sortBy === '%' ? b.pct - a.pct : b.over - a.over)
         .slice(0, top);
+      overBudgetDataRef.current = filtered;
       if (overBudgetChartRef.current) {
         const chart = overBudgetChartRef.current;
-        chart.data.labels = filtered.map(d => d.name);
+        chart.data.labels = filtered.map(d => `${d.name} (${d.id})`);
         chart.data.datasets[0].data = filtered.map(d => d.over);
         chart.data.datasets[1].data = filtered.map(d => d.pct * 100);
         chart.update();
@@ -221,7 +226,7 @@ export default function BudgetDashboard() {
       overBudgetChartRef.current = new Chart(overBudgetRef.current, {
         type: 'bar',
         data: {
-          labels: allOverBudget.slice(0, overTop).map(d => d.name),
+          labels: allOverBudget.slice(0, overTop).map(d => `${d.name} (${d.id})`),
           datasets: [
             { label: '$ Over', data: allOverBudget.slice(0, overTop).map(d => d.over), backgroundColor: COLORS.navy, yAxisID: 'y' },
             { label: '% Over', data: allOverBudget.slice(0, overTop).map(d => d.pct * 100), backgroundColor: COLORS.orange, yAxisID: 'y2' }
@@ -230,7 +235,7 @@ export default function BudgetDashboard() {
         options: {
           responsive: true, maintainAspectRatio: false,
           layout: { padding: { left: 0, right: 0 } },
-          plugins: { tooltip: { mode: 'index', callbacks: { label(ctx: { datasetIndex: number; dataIndex: number }) { const d = allOverBudget.slice(0, overTop)[ctx.dataIndex]; return ctx.datasetIndex === 0 ? fmt(d.over) + ' over budget' : (d.pct * 100).toFixed(1) + '% over budget'; } } } },
+          plugins: { tooltip: { mode: 'index', callbacks: { label(ctx: { datasetIndex: number; dataIndex: number }) { const d = overBudgetDataRef.current[ctx.dataIndex]; if (!d) return ''; return ctx.datasetIndex === 0 ? fmt(d.over) + ' over budget' : (d.pct * 100).toFixed(1) + '% over budget'; } } } },
           scales: {
             x: { ticks: { display: false } },
             y: { type: 'logarithmic', position: 'left', ticks: { callback: (v: number) => logTick(v), maxTicksLimit: 5 }, title: { display: true, text: '$ Over (log)' }, grid: { color: 'rgba(30,58,138,0.12)' } },
@@ -261,24 +266,13 @@ export default function BudgetDashboard() {
         const as = acctStats[t.acct_code], fs = fundStats[t.fund];
         const az = (Math.abs(t.amount) - as.avg) / as.sd;
         const fz = (Math.abs(t.amount) - fs.avg) / fs.sd;
-        return { date: t.post_date, fund: t.fund, account: t.acct_name, vendor: t.description_vendor, amount: Math.abs(t.amount), az, fz };
+        return { date: t.post_date, fund: t.fund, account: t.acct_name, acctCode: t.acct_code, fullAccount: t.account, vendor: t.description_vendor, amount: Math.abs(t.amount), az, fz };
       })
       .filter(t => t.az >= minZ)
       .sort((a, b) => Math.max(b.az, b.fz) - Math.max(a.az, a.fz))
       .slice(0, 200);
     setAnomalyCount(anomalies.length);
-
-    // Anomaly table HTML
-    const anomalyHeader = `<thead><tr><th class="znarrow" onclick="this.closest('table').dataset.sort='az'">Z (acct)</th><th class="znarrow">Z (fund)</th><th class="znarrow">Z (min)</th><th>Amount</th><th>Account</th><th>Description</th><th>Date</th></tr></thead>`;
-    let anomalyRows = '';
-    anomalies.forEach(d => {
-      const mz = Math.min(d.az, d.fz);
-      const cls = d.az > 5 ? 'high' : d.az > 4 ? 'med' : 'low';
-      const fcls = d.fz > 5 ? 'high' : d.fz > 4 ? 'med' : 'low';
-      const mcls = mz > 5 ? 'high' : mz > 4 ? 'med' : 'low';
-      anomalyRows += `<tr><td><span class="badge badge-${cls}">${d.az.toFixed(1)}</span></td><td><span class="badge badge-${fcls}">${d.fz.toFixed(1)}</span></td><td><span class="badge badge-${mcls}">${mz.toFixed(1)}</span></td><td class="money">${fmt(d.amount)}</td><td>${d.account}</td><td title="${d.vendor.replace(/"/g, '&quot;')}">${d.vendor.slice(0, 50)}${d.vendor.length > 50 ? '...' : ''}</td><td>${d.date}</td></tr>`;
-    });
-    setAnomalyHtml(`<div class="table-wrap"><table>${anomalyHeader}<tbody>${anomalyRows}</tbody></table></div>`);
+    setAnomalies(anomalies);
 
     // 4. HHI
     const fundVendors: Record<string, { name: string; vendors: Record<string, number> }> = {};
@@ -288,21 +282,14 @@ export default function BudgetDashboard() {
       if (!fundVendors[f].vendors[v]) fundVendors[f].vendors[v] = 0;
       fundVendors[f].vendors[v] += Math.abs(t.amount);
     });
-    const hhiData = Object.entries(fundVendors).map(([f, d]) => {
+    const hhi = Object.entries(fundVendors).map(([f, d]) => {
       const totals = Object.values(d.vendors);
       const fundTotal = totals.reduce((a, b) => a + b, 0);
-      const hhi = totals.reduce((a, v) => a + Math.pow(v / fundTotal, 2), 0);
+      const hhiVal = totals.reduce((a, v) => a + Math.pow(v / fundTotal, 2), 0);
       const sorted = Object.entries(d.vendors).sort((a, b) => b[1] - a[1]);
-      return { fund: f, name: d.name, count: totals.length, hhi, spend: fundTotal, topVendor: sorted[0]?.[0] ?? '', topAmount: sorted[0]?.[1] ?? 0, topPct: sorted[0] ? sorted[0][1] / fundTotal : 0 };
+      return { fund: f, name: d.name, count: totals.length, hhi: hhiVal, spend: fundTotal, topVendor: sorted[0]?.[0] ?? '', topAmount: sorted[0]?.[1] ?? 0, topPct: sorted[0] ? sorted[0][1] / fundTotal : 0 };
     }).filter(d => d.count > 1).sort((a, b) => b.topPct - a.topPct);
-
-    let hhiRows = '';
-    hhiData.forEach(d => {
-      const cls = d.hhi > 0.25 ? 'high' : d.hhi > 0.15 ? 'med' : 'low';
-      hhiRows += `<tr><td><span class="badge badge-${cls}">${d.hhi.toFixed(4)}</span></td><td class="money">${fmt(d.spend)}</td><td>${fmtP(d.topPct)}</td><td class="money">${fmt(d.topAmount)}</td><td>${d.count}</td><td>${d.name}</td><td>${d.topVendor.slice(0, 30)}</td></tr>`;
-    });
-    const hhiHeader = `<thead><tr><th>HHI</th><th>Fund Spend</th><th>Top %</th><th>Top $</th><th>Vendors</th><th>Fund</th><th>Top Vendor</th></tr></thead>`;
-    setHhiHtml(`<div class="table-wrap"><table>${hhiHeader}<tbody>${hhiRows}</tbody></table></div>`);
+    setHhiData(hhi);
 
     // 5. Top Vendors
     const vendors: Record<string, { total: number; count: number }> = {};
@@ -318,13 +305,7 @@ export default function BudgetDashboard() {
       .filter(v => v.count >= minTxn)
       .sort((a, b) => b.total - a.total)
       .slice(0, 20);
-
-    let vendorRows = '';
-    topVendors.forEach(d => {
-      vendorRows += `<tr><td data-v="${d.total}" class="money">${fmt(d.total)}</td><td data-v="${d.vendor}">${d.vendor}</td></tr>`;
-    });
-    const vendorHeader = `<thead><tr><th>Total Spend</th><th>Vendor</th></tr></thead>`;
-    setVendorHtml(`<div class="table-wrap"><table>${vendorHeader}<tbody>${vendorRows}</tbody></table></div>`);
+    setVendorData(topVendors);
 
     // 6. Amount Distribution
     const buckets: Record<string, number> = { 'micro (<$100)': 0, 'small ($100-$1K)': 0, 'medium ($1K-$10K)': 0, 'large ($10K-$100K)': 0, 'mega (>$100K)': 0 };
@@ -427,6 +408,44 @@ export default function BudgetDashboard() {
     };
   }, [txns, budgetMap, renderAll]);
 
+  // Z-score badge renderer
+  const zBadge = (z: number): ReactNode => {
+    const cls = z > 5 ? 'badge-high' : z > 4 ? 'badge-med' : 'badge-low';
+    return <span className={`badge ${cls}`}>{z.toFixed(1)}</span>;
+  };
+  const hhiBadge = (h: number): ReactNode => {
+    const cls = h > 0.25 ? 'badge-high' : h > 0.15 ? 'badge-med' : 'badge-low';
+    return <span className={`badge ${cls}`}>{h.toFixed(4)}</span>;
+  };
+
+  // Anomaly table columns
+  const anomalyCols: Column<typeof anomalies[number]>[] = useMemo(() => [
+    { key: 'az', header: 'Z (acct)', width: 'w-[60px]', render: d => zBadge(d.az), sort: (a, b) => b.az - a.az },
+    { key: 'fz', header: 'Z (fund)', width: 'w-[60px]', render: d => zBadge(d.fz), sort: (a, b) => b.fz - a.fz },
+    { key: 'mz', header: 'Z (min)', width: 'w-[60px]', render: d => zBadge(Math.min(d.az, d.fz)), sort: (a, b) => Math.min(b.az, b.fz) - Math.min(a.az, a.fz) },
+    { key: 'amount', header: 'Amount', align: 'right', render: d => moneyCell(d.amount), sort: (a, b) => b.amount - a.amount },
+    { key: 'account', header: 'Account', render: d => <a href={`${import.meta.env.BASE_URL}budget/explorer#fund=${encodeURIComponent(d.fund)}&account=${encodeURIComponent(d.fullAccount)}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{d.account} <span className="text-gray-400 font-mono text-[0.78em]">({d.fund}:{d.acctCode})</span></a>, sort: (a, b) => a.account.localeCompare(b.account) },
+    { key: 'vendor', header: 'Description', render: d => <span title={d.vendor}>{d.vendor.length > 50 ? d.vendor.slice(0, 50) + '...' : d.vendor}</span>, sort: (a, b) => a.vendor.localeCompare(b.vendor) },
+    { key: 'date', header: 'Date', render: d => d.date, sort: (a, b) => a.date.localeCompare(b.date) },
+  ], []);
+
+  // HHI table columns
+  const hhiCols: Column<typeof hhiData[number]>[] = useMemo(() => [
+    { key: 'hhi', header: 'HHI', render: d => hhiBadge(d.hhi), sort: (a, b) => b.hhi - a.hhi },
+    { key: 'spend', header: 'Fund Spend', align: 'right', render: d => moneyCell(d.spend), sort: (a, b) => b.spend - a.spend },
+    { key: 'topPct', header: 'Top %', align: 'right', render: d => <span className="font-mono text-[0.82em]">{(d.topPct * 100).toFixed(1)}%</span>, sort: (a, b) => b.topPct - a.topPct },
+    { key: 'topAmount', header: 'Top $', align: 'right', render: d => moneyCell(d.topAmount), sort: (a, b) => b.topAmount - a.topAmount },
+    { key: 'count', header: 'Vendors', align: 'right', render: d => d.count, sort: (a, b) => b.count - a.count },
+    { key: 'fund', header: 'Fund', render: d => <a href={`${import.meta.env.BASE_URL}budget/explorer#fund=${encodeURIComponent(d.fund)}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{d.name}</a>, sort: (a, b) => a.fund.localeCompare(b.fund) },
+    { key: 'topVendor', header: 'Top Vendor', render: d => d.topVendor.slice(0, 30), sort: (a, b) => a.topVendor.localeCompare(b.topVendor) },
+  ], []);
+
+  // Vendor table columns
+  const vendorCols: Column<typeof vendorData[number]>[] = useMemo(() => [
+    { key: 'total', header: 'Total Spend', align: 'right', render: d => moneyCell(d.total), sort: (a, b) => b.total - a.total },
+    { key: 'vendor', header: 'Vendor', render: d => d.vendor, sort: (a, b) => a.vendor.localeCompare(b.vendor) },
+  ], []);
+
   if (txnsLoading || budgetLoading || !txns || !budgetMap) {
     return (
       <BudgetLayout>
@@ -464,6 +483,7 @@ export default function BudgetDashboard() {
         .badge-med { background:#fff3cd; color:#22262a; }
         .badge-low { background:#d4edda; color:#22262a; }
         .money { text-align:right; font-family:'SF Mono',Consolas,monospace; font-size:0.82em; white-space:nowrap; }
+        .acct-ref { font-family:'SF Mono',Consolas,monospace; font-size:0.78em; color:#6b7280; }
         .neg { color:#dc3545; }
         .znarrow { width:60px; min-width:50px; }
         .info { background:#f9fafb; border-left:3px solid #22262a; padding:10px 14px; border-radius:0 8px 8px 0; font-size:0.85em; line-height:1.5; color:#22262a; margin:0 24px; max-width:1552px; }
@@ -526,7 +546,7 @@ export default function BudgetDashboard() {
         <div className="card full">
           <h2>Anomalous Transactions</h2>
           <p style={{ fontSize:'0.7em', color:'#888', marginBottom:6 }}>{anomalyCount} flagged transactions</p>
-          <div dangerouslySetInnerHTML={{ __html: anomalyHtml }} />
+          <SortableTable data={anomalies} columns={anomalyCols} />
         </div>
 
         {/* Anomaly info */}
@@ -539,7 +559,7 @@ export default function BudgetDashboard() {
         {/* Row 3: HHI */}
         <div className="card full">
           <h2>Vendor Concentration Risk (HHI by Fund)</h2>
-          <div dangerouslySetInnerHTML={{ __html: hhiHtml }} />
+          <SortableTable data={hhiData} columns={hhiCols} />
         </div>
 
         {/* HHI info */}
@@ -556,7 +576,7 @@ export default function BudgetDashboard() {
         {/* Row 4: Top Vendors */}
         <div className="card full">
           <h2>Top Vendors by Total Spend</h2>
-          <div dangerouslySetInnerHTML={{ __html: vendorHtml }} />
+          <SortableTable data={vendorData} columns={vendorCols} />
         </div>
 
         {/* Row 5: Distribution + Day Volume */}

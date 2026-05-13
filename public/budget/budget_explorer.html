@@ -119,6 +119,14 @@ td input[type="checkbox"], th input[type="checkbox"] {
 .site-nav a { color:var(--muted); text-decoration:none; font-size:0.85em; }
 .site-nav a:hover { color:var(--text); text-decoration:underline; }
 .site-nav .active { color:var(--text); font-weight:600; pointer-events:none; }
+.pdf-link { display:inline-block; padding:1px 6px; border-radius:3px; background:#e60000; color:#fff; font-size:0.72em; font-family:'SF Mono',Consolas,monospace; font-weight:600; text-decoration:none; vertical-align:middle; margin-left:4px; }
+.pdf-link:hover { background:#cc0000; color:#fff; text-decoration:none; }
+.summary-tbl { width:100%; border-collapse:collapse; font-size:0.82em; margin-bottom:4px; }
+.summary-tbl th { background:#f3f4f6; padding:5px 10px; text-align:left; font-weight:600; color:#374151; white-space:nowrap; }
+.summary-tbl thead th { background:#e60000; color:#fff; font-size:0.78em; text-transform:uppercase; letter-spacing:0.03em; }
+.summary-tbl .r { text-align:right; }
+.summary-tbl td { padding:5px 10px; border-bottom:1px solid #e5e7eb; }
+.summary-tbl td.neg { color:#dc3545; }
 </style>
 </head>
 <body>
@@ -145,6 +153,11 @@ const DATA = {"county": {"budget": 2467510.260000001, "activity": -1050022.60000
 let state = { view: 'county', fund: null, account: null, page: 0 };
 let sortKey = null, sortAsc = true;
 const PAGE_SIZE = 50;
+const PDF_BASE = '../data/2025-detail-vs-budget-report.pdf';
+
+// PDF page mapping (loaded async)
+let PDF_PAGES = { accounts: {}, funds: {} };
+fetch('../data/pdf_pages.json').then(r => r.json()).then(d => { PDF_PAGES = d; render(); }).catch(() => {});
 
 // Track checkbox state per table
 let fundChecks = {};   // fid -> bool
@@ -193,8 +206,20 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function nav(view, fund, account) {
     state = { view, fund: fund || null, account: account || null, page: 0 };
     sortKey = null; sortAsc = true;
+    // Update URL hash for deep linking
+    const parts = [];
+    if (view === 'fund' && fund) parts.push('fund=' + encodeURIComponent(fund));
+    if (view === 'account' && fund && account) { parts.push('fund=' + encodeURIComponent(fund)); parts.push('account=' + encodeURIComponent(account)); }
+    history.replaceState(null, '', parts.length ? '#' + parts.join('&') : location.pathname);
     render();
     window.scrollTo(0, 0);
+}
+
+// Generate a PDF page link badge for an account code or fund id
+function pdfPage(type, id) {
+    const page = type === 'account' ? PDF_PAGES.accounts[id] : PDF_PAGES.funds[id];
+    if (!page) return '';
+    return ' <a href="' + PDF_BASE + '#page=' + page + '" target="_blank" class="pdf-link" onclick="event.stopPropagation()" title="View in PDF (page ' + page + ')">p.' + page + '</a>';
 }
 
 function renderBreadcrumb() {
@@ -579,7 +604,7 @@ function renderFundTableBody() {
         const ck = fundChecks[r.fid] ? 'checked' : '';
         h += '<tr class="clickable" onclick="nav(&quot;fund&quot;,&quot;' + r.fid + '&quot;)">';
         h += '<td><input type="checkbox" ' + ck + ' onclick="toggleFundCheck(&quot;' + r.fid + '&quot;,this)"></td>';
-        h += '<td>' + r.fid + '</td>';
+        h += '<td>' + r.fid + pdfPage('fund', r.fid) + '</td>';
         h += '<td>' + esc(r.name) + '</td>';
         for (const col of FUND_COLS) {
             if (!fundColVisible[col.key]) continue;
@@ -649,37 +674,16 @@ function renderFund(el) {
 
     let html = '';
 
-    // Revenue KPIs
-    html += '<div class="section-title">Revenue Totals</div>';
-    html += '<div class="kpi-grid">';
-    html += kpi('Fiscal Budget', fmtFull(f.rev_budget), '');
-    html += kpi('Total Activity', fmtFull(f.rev_activity), '');
-    html += kpi('Ending Balance', fmtFull(f.rev_ending), '');
-    html += kpi('Budget Remaining', fmtFull(f.rev_remaining), f.rev_remaining < 0 ? 'deficit' : 'surplus');
-    html += kpi('% Remaining', pctFmt(revPct), '');
-    html += '</div>';
+    // Fund header with PDF link
+    html += '<div class="section-title">' + esc(fobj.name) + pdfPage('fund', state.fund) + '</div>';
 
-    // Expense KPIs
-    html += '<div class="section-title">Expense Totals</div>';
-    html += '<div class="kpi-grid">';
-    html += kpi('Fiscal Budget', fmtFull(f.exp_budget), '');
-    html += kpi('Total Activity', fmtFull(f.exp_activity), '');
-    html += kpi('Ending Balance', fmtFull(f.exp_ending), '');
-    html += kpi('Budget Remaining', fmtFull(f.exp_remaining), f.exp_remaining < 0 ? 'deficit' : 'surplus');
-    html += kpi('% Remaining', pctFmt(expPct), '');
-    html += '</div>';
-
-    // Fund Totals (everything combined)
-    html += '<div class="section-title">Fund Totals</div>';
-    html += '<div class="kpi-grid">';
-    html += kpi('Fiscal Budget', fmtFull(f.budget), '');
-    html += kpi('Total Activity', fmtFull(f.activity), '');
-    html += kpi('Ending Balance', fmtFull(f.ending), '');
-    html += kpi('Budget Remaining', fmtFull(f.remaining), f.remaining < 0 ? 'deficit' : 'surplus');
-    html += kpi('% Remaining', pctFmt(fundPct), '');
-    html += kpi('Accounts', f.n_accounts, '');
-    html += kpi('Transactions', f.txns.toLocaleString(), '');
-    html += '</div>';
+    // Compact summary table: labels top, rows for Revenue/Expense/Fund
+    html += '<table class="summary-tbl"><thead><tr><th></th><th class="r">Budget</th><th class="r">Activity</th><th class="r">Ending</th><th class="r">Remaining</th><th class="r">% Rem</th></tr></thead><tbody>';
+    html += '<tr><th>Revenue</th><td class="money">' + fmtFull(f.rev_budget) + '</td><td class="money">' + fmtFull(f.rev_activity) + '</td><td class="money">' + fmtFull(f.rev_ending) + '</td><td class="money ' + (f.rev_remaining < 0 ? 'neg' : '') + '">' + fmtFull(f.rev_remaining) + '</td><td>' + pctFmt(revPct) + '</td></tr>';
+    html += '<tr><th>Expense</th><td class="money">' + fmtFull(f.exp_budget) + '</td><td class="money">' + fmtFull(f.exp_activity) + '</td><td class="money">' + fmtFull(f.exp_ending) + '</td><td class="money ' + (f.exp_remaining < 0 ? 'neg' : '') + '">' + fmtFull(f.exp_remaining) + '</td><td>' + pctFmt(expPct) + '</td></tr>';
+    html += '<tr><th>Fund</th><td class="money">' + fmtFull(f.budget) + '</td><td class="money">' + fmtFull(f.activity) + '</td><td class="money">' + fmtFull(f.ending) + '</td><td class="money ' + (f.remaining < 0 ? 'neg' : '') + '">' + fmtFull(f.remaining) + '</td><td>' + pctFmt(fundPct) + '</td></tr>';
+    html += '</tbody></table>';
+    html += '<div style="font-size:0.75em;color:#888;margin:4px 0 8px">' + f.n_accounts + ' accounts &middot; ' + f.txns.toLocaleString() + ' transactions</div>';
 
     html += '<div class="section-title">Accounts in ' + esc(fobj.name) + ' &mdash; click to see transactions</div>';
     html += '<div class="toolbar">';
@@ -758,7 +762,7 @@ function renderAcctTableBody() {
         const ck = acctChecks[a.account] ? 'checked' : '';
         h += '<tr class="clickable" onclick="nav(&quot;account&quot;,&quot;' + state.fund + '&quot;,&quot;' + a.account + '&quot;)">';
         h += '<td><input type="checkbox" ' + ck + ' onclick="toggleAcctCheck(&quot;' + a.account + '&quot;,this)"></td>';
-        h += '<td>' + a.account + '</td>';
+        h += '<td>' + a.account + pdfPage('account', a.account) + '</td>';
         h += '<td>' + a.code + '</td>';
         h += '<td>' + esc(a.name) + '</td>';
         h += '<td>' + badge(a.type) + '</td>';
@@ -801,7 +805,7 @@ function renderAccount(el) {
     html += kpi('Transactions', txns.length, '');
     html += '</div>';
 
-    html += '<div class="section-title">' + acct.account + ' &mdash; ' + esc(acct.name) + ' ' + badge(acct.type) + '</div>';
+    html += '<div class="section-title">' + acct.account + pdfPage('account', acct.account) + ' &mdash; ' + esc(acct.name) + ' ' + badge(acct.type) + '</div>';
 
     if (txns.length === 0) {
         html += '<div class="table-wrap"><p style="padding:20px;color:#666">No transactions.</p></div>';
@@ -884,6 +888,20 @@ function goPage(p) { state.page = p; renderTxnTable(); }
 function kpi(label, value, cls) {
     return '<div class="kpi ' + cls + '"><div class="val">' + value + '</div><div class="lbl">' + label + '</div></div>';
 }
+
+// Parse URL hash for deep linking (e.g. #fund=01&account=01-01-47000)
+(function() {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const fund = params.get('fund');
+    const account = params.get('account');
+    if (account && fund) {
+        state = { view: 'account', fund, account, page: 0 };
+    } else if (fund) {
+        state = { view: 'fund', fund, account: null, page: 0 };
+    }
+})();
 
 render();
 </script>

@@ -86,6 +86,7 @@ export interface OverBudgetItem {
   actual: number;
   over: number;
   pct: number;  // over / budget
+  id: string;   // fund:acct_code identifier
 }
 
 export interface AnomalyItem {
