@@ -1,36 +1,36 @@
 [
   {
-    "dTag": "d4de22be-8d87-46d7-aa50-83475a454248",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Untitled-1778586715.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Untitled-1778586715.srt",
+    "dTag": "9cbab3c1-8f7e-460a-b5e3-70fb6760c64b",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/5_13_Ray_Co_Commissioners_Mtg-1778680245.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/5_13_Ray_Co_Commissioners_Mtg-1778680245.srt",
     "success": true,
     "event": {
       "content": "",
-      "created_at": 1778586715,
-      "id": "a757439b3532fb6217913b4cc0be7bc8972a6d13d1e3ebdc641928d45f53fd7a",
+      "created_at": 1778680245,
+      "id": "95b3d4beaa539e4590cf97f4c528bcb4f569f624a8ec5835dacd610d90a13704",
       "kind": 30054,
       "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "5e78c2f4bb5d677c0dd6187eecf00fdcfb38640c53675706c60a1d14692e713f22cb01cff682482076f4193a02360788c9e033f8f38544eb0d57e3336c1a95d4",
+      "sig": "0734297275546a61e3662a2e9b286e3102461f0543c660ff80d7d4e3fc66bdae0a4c3740888f861f19835720263f7b0c9f808858242170293d2261cfc7dfa1cf",
       "tags": [
         [
           "d",
-          "d4de22be-8d87-46d7-aa50-83475a454248"
+          "9cbab3c1-8f7e-460a-b5e3-70fb6760c64b"
         ],
         [
           "title",
-          "Untitled"
+          "5/13, Ray Co Commissioners Mtg"
         ],
         [
           "summary",
-          ""
+          "Ray County Commissioner's meetings streaming"
         ],
         [
           "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/5d7614a556abcfbf81d893d69e166230/downloads/default.mp4"
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/732470909aa4c0ac62a4431b6ae96a6e/downloads/default.mp4?filename=5-13-ray-co-commissioners-mtg"
         ],
         [
           "image",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/5d7614a556abcfbf81d893d69e166230/thumbnails/thumbnail.jpg"
+          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
         ],
         [
           "duration",
@@ -38,7 +38,7 @@
         ],
         [
           "alt",
-          "Podcast episode: Untitled"
+          "Podcast episode: 5/13, Ray Co Commissioners Mtg"
         ],
         [
           "client",
@@ -50,11 +50,7 @@
         ],
         [
           "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:d4de22be-8d87-46d7-aa50-83475a454248"
-        ],
-        [
-          "description",
-          "This meeting covered administrative scheduling and significant budget discussions. Officials outlined upcoming agenda items, including a jail increase system, an ethics commission report, and an April 1st road hearing for a citizen. \n\nThe primary focus was addressing discrepancies in the upcoming annual budget. A department official highlighted a missing $6,000 line item, unaccounted statutory salary increases, and the financial impact of a mandatory 3% cost-of-living adjustment (COLA) for employees. A roughly $90,000 variance in salary expenses was debated, which was partially explained by a delayed staff hire and previous mid-year budget cuts. \n\nConsequently, the board voted to table the budget discussion and its final approval until the following morning to allow time to recalculate and clarify the financial figures.\n\n===== FULL DESCRIPTION =====\n\n**Episode Summary: Budget Discrepancies and Agenda Planning**\n\nIn this government meeting, officials primarily focused on reviewing the upcoming budget, addressing significant discrepancies in salary projections, and planning the agenda for the coming weeks. \n\n**Upcoming Agenda and Scheduling**\nThe board reviewed its calendar to schedule upcoming agenda items. Key dates and discussions include:\n*   **Jail Increase System:** Added to the agenda for an upcoming Wednesday meeting.\n*   **April 1st Meetings:** The board is scheduled to receive an ethics commission report. Additionally, a citizen who previously petitioned regarding modifications to a local road and public notifications will return for a follow-up discussion.\n*   **Administrative Updates:** Members briefly confirmed that required \"Vantage reports\" are being updated and filed on a rolling three-month basis.\n\n**Budget Review and Salary Discrepancies**\nThe bulk of the meeting centered on reviewing the upcoming fiscal budget. Several major discrepancies were identified between the current draft and actual expected expenditures:\n*   **Missing Line Item:** A $6,000 expenditure that was previously discussed was inadvertently left out of the current budget draft.\n*   **Statutory Salary Increases:** An official noted that their statutory salary was listed at last year's rate. By law, this salary is set to increase annually, requiring an adjustment to the draft. \n*   **Cost of Living Adjustments (COLA):** A major point of confusion arose regarding a mandatory 3% COLA for full-time employees. While the board mandated the 3% increase, the draft budget listed salaries, Medicare, and Social Security contributions at the exact same amounts as the previous year. \n\n**Explaining the $90,000 Variance**\nBoard members identified a massive discrepancy of nearly $90,000 to $100,000 between two budget line items ($279,000 versus $364,000). Staff clarified that this variance was not solely due to the missing COLA. A large portion of the difference was caused by a $70,000 salary for an employee (Rachel) who was not hired until August of the previous year. Because she was only paid for half of the prior year, the previous budget was significantly lower. Additionally, $25,000 to $26,000 had previously been cut from the salary line items to balance an earlier budget. \n\n**Key Decisions and Action Items**\nBecause of the significant mathematical errors and omissions in the current budget draft, the board agreed that the figures needed to be completely reconciled before any approval could take place.\n*   **Budget Tabled:** A motion was successfully made and seconded to table the budget discussion and its official approval until the following day.\n*   **Staff Action:** Staff agreed to meet later that afternoon to review the current budget numbers and create a new worksheet. This document will clearly illustrate the mathematical impact of the 3% COLA and the actual cost of current employees.\n*   **Next Meeting:** The board will reconvene the next morning at 10:00 AM, when all members are present, to review the corrected numbers and vote on the budget.\n\nTranscription: https://kurt-croix.github.io/podstr/transcripts/Untitled-1778530389.srt"
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:9cbab3c1-8f7e-460a-b5e3-70fb6760c64b"
         ]
       ]
     }
