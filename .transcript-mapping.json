@@ -1,62 +1,8 @@
 [
   {
-    "dTag": "9cbab3c1-8f7e-460a-b5e3-70fb6760c64b",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/5_13_Ray_Co_Commissioners_Mtg-1779226909.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/5_13_Ray_Co_Commissioners_Mtg-1779226909.srt",
-    "success": true,
-    "event": {
-      "content": "",
-      "created_at": 1779226909,
-      "id": "ef96b217d6a3b765f3db8e64a63958b73dfc1bbadd8c4585eae0e91fcda07de6",
-      "kind": 30054,
-      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "fdbdc982cd02a6bb5b95d2b302c6463b5e6d42b5fabfb0e0b5d8e04e9f6bba8c12ecc629f6d668375e8ee63072a0d9b01e6f6fe2fb2d622d2cd99d917e60d40d",
-      "tags": [
-        [
-          "d",
-          "9cbab3c1-8f7e-460a-b5e3-70fb6760c64b"
-        ],
-        [
-          "title",
-          "5/13, Ray Co Commissioners Mtg"
-        ],
-        [
-          "summary",
-          "Ray County Commissioner's meetings streaming"
-        ],
-        [
-          "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/732470909aa4c0ac62a4431b6ae96a6e/downloads/default.mp4?filename=5-13-ray-co-commissioners-mtg"
-        ],
-        [
-          "image",
-          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
-        ],
-        [
-          "duration",
-          "0"
-        ],
-        [
-          "alt",
-          "Podcast episode: 5/13, Ray Co Commissioners Mtg"
-        ],
-        [
-          "client",
-          "podstr-github-actions"
-        ],
-        [
-          "t",
-          "livestream"
-        ],
-        [
-          "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:9cbab3c1-8f7e-460a-b5e3-70fb6760c64b"
-        ],
-        [
-          "description",
-          "The County Commission opened with a prayer and approved the previous meeting's minutes. Key discussions focused on rising inmate medical costs, with commissioners agreeing to explore manufacturer discount programs and consult the Sheriff's office for solutions. The commission also reviewed budget classifications for jail maintenance and a new security camera system. \n\nDuring an ARPA funding update, officials reported that Homestead Village awarded a $202,000 bid for a wastewater treatment facility. Commissioners directed staff to process project invoices early to ensure funds are spent prior to the strict September deadline. The meeting adjourned following brief updates on community outreach and sales tax reports.\n\n===== FULL DESCRIPTION =====\n\n**Podcast Show Notes: Ray County Commission Meeting Recap**\n\n**Episode Summary:**\nIn this episode, we recap the recent Ray County Commission meeting. The session covered a wide range of administrative, financial, and community topics. Key discussions included the approval of previous meeting minutes, an update on the Homestead Village water infrastructure project, strategies for managing rising inmate medical costs, and a review of the county’s ARPA fund allocations. \n\n**Opening and Administrative Business:**\nThe meeting commenced at approximately 9:00 AM with an invocation led by a local pastor. The prayer focused on community unity, guidance for elected officials and county workers, and a special mention for a staff member named Lindsay regarding her health and pregnancy. \n\nFollowing the prayer, the commission addressed standard administrative duties. A motion was made and seconded to approve the minutes from the previous commission meeting. The motion passed with a unanimous voice vote, and the commissioners signed the official documents.\n\n**Public Commentary and Budget Inquiries:**\nDuring the public comment segment, a citizen inquired about the county's budget review process. The commission clarified its schedule for reviewing the budget, noting that they hold three meetings annually—roughly every four months—with all county officeholders. These sessions are designed to review the current budget status, assess where expenditures may be off track, and plan for the upcoming fiscal periods. \n\nThe citizen specifically asked how to obtain the budget details for individual county accounts, such as the Road and Bridge department. The commission explained that obtaining these records requires submitting a formal request, noting that the county had already fulfilled a similar request from another individual who subsequently declined to pay the associated fees.\n\n**Community Outreach and Local Events:**\nThe commission addressed a proposed community outreach initiative. A staff member requested permission to set up a table outside her office to distribute free reading glasses to the public. The glasses were acquired by her daughter from a local eye surgeon. The commission expressed enthusiastic support for the idea, with no objections raised.\n\nAdditionally, the commissioners took a moment to highlight the success of several recent community events. These included a Child Abuse Awareness event, a local prayer service, and the highly successful Metro Festival, which featured a large car show and was noted for having excellent weather and a strong turnout.\n\n**Inmate Medical Costs and Budget Allocation:**\nA significant portion of the meeting was dedicated to discussing the rising cost of inmate medical care and prescription medications. The commission reviewed a specific case where a 30-day supply of a name-brand medication for an inmate cost $1,600, as no generic alternative was available. \n\nThe dialogue explored potential cost-saving measures. Suggestions included utilizing manufacturer coupons, using websites that search for the cheapest local pharmacy prices, and exploring discount programs. The commission also clarified the policy regarding inmate medical payments: if a judge declares an inmate indigent, the county absorbs the cost. However, if an inmate has money in their commissary account, those funds can be used to offset office visit and medical expenses. An action item was established for staff to consult with the Sheriff's office to explore programs that could help mitigate the roughly $18,000 annual cost per inmate for specific treatments. \n\n**ARPA Funds and County Financial Updates:**\nThe commission reviewed the status of the county’s American Rescue Plan Act (ARPA) funds. To date, the county has managed $4.4 million in federal allocations, with $2.235 million dedicated to specific improvement projects. A consulting group audits these funds to ensure federal compliance. Staff noted that the county is on the \"downhill side\" of spending these funds. The county’s accounting and reporting for these funds were highly praised by the auditing consultants.\n\n**Road, Bridge, and Facility Maintenance:**\nFacility and road maintenance issues were briefly discussed. The commission reviewed recent work orders, determining that jail maintenance projects—such as replacing lighting in a freezer room and installing new wiring and ceiling outlets—should be categorized under \"Buildings and Grounds\" rather than \"Capital Improvement.\" Additionally, an update on the new security camera system for the jail was provided, noting that the total cost is being split evenly between the county and the judge’s specialty budget. For public infrastructure, a citizen reported a hazard on Waller Road involving shallow wires, which the commission confirmed was already on the Road and Bridge department's list for review.\n\n**Homestead Village Water Infrastructure Project:**\nThe final major agenda item featured a presentation by Connie regarding the Homestead Village wastewater project, conducted in partnership with Great River Engineering. \n\n*   **Project Timeline:** Bids were opened on April 15. Despite a delay caused by a contractor arriving an hour late, the project stayed on track. Ray County waived the bid on April 29, and Great River Engineering reviewed the bid on May 6.\n*   **Financials:** The winning bid for the treatment facility came in at $202,000. The project has a total remaining budget of approximately $400,000.\n*   **Next Steps:** Homestead Village has issued a Notice of Award, and the contractor has 10 days to secure payment and performance bonds. The contract is expected to be signed by May 22. The contractor will have 120 days to complete the work, resulting in a projected completion date of September 19. This leaves an 11-day buffer before the strict September 30 federal deadline. \n*   **Collection System Repairs:** Homestead Village recently experienced a line break and is paying out of pocket for immediate repairs. To maximize the remaining budget, they plan to use a \"piggyback\" contract through Mega KC to perform hourly collection system repairs.\n*   **Action Items:** The commission and project managers agreed to prioritize processing invoices immediately. The goal is to spend at least 50% of the remaining funds in the next few weeks to avoid a stressful, last-minute financial crunch in September.\n\n**Conclusion:**\nWith all agenda items addressed and no further business brought before the commission, a motion to adjourn was made and approved. The next scheduled meeting was noted for July 8. Following adjournment, commissioners addressed minor administrative tasks, including paying for sunshine requests.\n\nTranscription: https://kurt-croix.github.io/podstr/transcripts/5_13_Ray_Co_Commissioners_Mtg-1779139420.srt"
-        ]
-      ]
-    }
+    "dTag": "e70b9ad8-3060-488a-ae41-b8443c026d9a",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/5_21_Ray_Co_Commissioners_Mtg-1779392578.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/5_21_Ray_Co_Commissioners_Mtg-1779392578.srt",
+    "success": true
   }
 ]
