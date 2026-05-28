@@ -1,5 +1,5 @@
 {
-  "lastProcessedTimestamp": 1779392578,
+  "lastProcessedTimestamp": 1779998594,
   "processedLivestreams": {
     "85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:d705725b-f5e3-4e2f-9ec3-c5f346f63c73": {
       "address": "85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:d705725b-f5e3-4e2f-9ec3-c5f346f63c73",
@@ -17,6 +17,12 @@
       "address": "85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:e70b9ad8-3060-488a-ae41-b8443c026d9a",
       "timestamp": 1779373808,
       "episodeId": "e70b9ad8-3060-488a-ae41-b8443c026d9a",
+      "status": "success"
+    },
+    "85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:3da810cc-61bf-47ee-a0e7-424bccca5b73": {
+      "address": "85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:3da810cc-61bf-47ee-a0e7-424bccca5b73",
+      "timestamp": 1779980476,
+      "episodeId": "3da810cc-61bf-47ee-a0e7-424bccca5b73",
       "status": "success"
     }
   }
