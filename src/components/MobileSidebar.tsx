@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen, Sun, Moon, DollarSign } from 'lucide-react';
+import { Headphones, List, Users, MessageSquare, User, Rss, Settings, BookOpen, Sun, Moon, DollarSign, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
@@ -66,6 +66,13 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       icon: DollarSign,
       label: 'Budget',
       description: 'Ray County FY2025'
+    },
+    {
+      path: 'https://kurt-croix.github.io/bloom-check/',
+      icon: ShieldCheck,
+      label: 'Bloom-Check',
+      description: 'Audit public files',
+      external: true
     },
     {
       path: '/about',
