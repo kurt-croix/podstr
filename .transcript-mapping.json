@@ -1,62 +1,8 @@
 [
   {
-    "dTag": "3da810cc-61bf-47ee-a0e7-424bccca5b73",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/5_28_Ray_Co_Commissioners_Mtg-1780432572.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/5_28_Ray_Co_Commissioners_Mtg-1780432572.srt",
-    "success": true,
-    "event": {
-      "content": "",
-      "created_at": 1780432572,
-      "id": "023d292bff40749e75bbdd7bfbdb687f91174bbfec86bed51f634951b39926d0",
-      "kind": 30054,
-      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "cd35aa22df9e0ea83ab365f31a5b85c3b1c91fd101e16dbe2f1ecb159558f817198d209d43b6d78dde6658277aaed0541fed217ba5200993f5219fa233020a4a",
-      "tags": [
-        [
-          "d",
-          "3da810cc-61bf-47ee-a0e7-424bccca5b73"
-        ],
-        [
-          "title",
-          "5/28, Ray Co Commissioners Mtg"
-        ],
-        [
-          "summary",
-          "Ray County Commissioner's meetings streaming"
-        ],
-        [
-          "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/76a1e6bb6254074ff2c28830fb455587/downloads/default.mp4?filename=5-28-ray-co-commissioners-mtg"
-        ],
-        [
-          "image",
-          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
-        ],
-        [
-          "duration",
-          "0"
-        ],
-        [
-          "alt",
-          "Podcast episode: 5/28, Ray Co Commissioners Mtg"
-        ],
-        [
-          "client",
-          "podstr-github-actions"
-        ],
-        [
-          "t",
-          "livestream"
-        ],
-        [
-          "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:3da810cc-61bf-47ee-a0e7-424bccca5b73"
-        ],
-        [
-          "description",
-          "This summary covers the key events of the county commission meeting:\n\nDuring the public comment period, a citizen questioned the commission about a recent state auditor's report, which found that 17 of 18 closed meetings included discussions outside of statutory allowances. Commissioners acknowledged the finding, noting they are striving for better compliance despite lacking dedicated legal counsel. \n\nKey decisions included approving the meeting minutes and accepting a janitorial services bid from Mike Kenney. The board also authorized contracts for EOC internet services, detention officer accreditation training, and a new jail management software system (Cadence Software) to replace a delayed, more expensive platform. \n\nAdditional discussions involved reviewing delayed museum invoices, noting the $4,300 annual insurance cost for the old jail, addressing issues with county procurement cards, and acknowledging that the state legislature will not hold a special session to suspend the gas tax.\n\n===== FULL DESCRIPTION =====\n\n**Summary of County Commission Meeting**\n\n**Meeting Overview**\nThe County Commission convened to discuss various administrative, financial, and operational issues facing the county. The session included a public comment period focused on a recent state audit, the approval of previous meeting minutes, the acceptance of a new janitorial services bid, and extensive discussions regarding sheriff's department operations, jail management software, and county property maintenance. \n\n**Pre-Meeting Administrative Discussions**\nPrior to the official call to order, commissioners and staff discussed several financial and logistical matters. A brief update was given regarding a recent solid waste issue, which did not pass, providing a temporary reprieve rather than a permanent fix. Staff also reviewed fuel rebate calculations, noting specific refund amounts for diesel fuel: $4,167.80 for November and $396.41 for December. Additionally, a commissioner raised concerns over a $7,300 expense for door artwork, requesting full documentation and justification for the cost before proceeding. \n\n**Call to Order and Public Comment**\nThe meeting was officially called to order shortly after 9:00 AM, followed by the Pledge of Allegiance. During the public comment period, a citizen named Kurt Croy addressed the board regarding a recent follow-up report from the state auditor. Croy noted that the auditor found 17 out of 18 closed meetings had discussed topics not permitted under closed session regulations. He questioned whether the commission planned to release the minutes of those meetings and pointed out that the auditor's report indicated prior recommendations were only \"partially implemented.\"\n\nCommissioners responded by clarifying that they had a positive and productive meeting with the state auditor. They explained that the board does not have dedicated legal counsel present at all times to guide closed sessions, unlike larger jurisdictions. The commissioners maintained that they are making every effort to follow the auditor's recommendations and stay strictly focused on statutory topics in the future, though they deferred further official comment until they had fully reviewed the report themselves. \n\n**Approval of Minutes and Financial Matters**\nThe commission reviewed the minutes from the previous meeting. Commissioner Hockenier noted only minor punctuation changes. A motion to approve the minutes was made, seconded, and passed unanimously. \n\nThe board then addressed the weekly bills. A brief discussion occurred regarding the routing of certain county invoices, which had incorrectly been sent to a local museum for the past year. Staff confirmed the issue has been resolved, and invoices will now be sent directly via email. Additionally, commissioners briefly discussed state legislative inaction, noting that the governor had decided against calling a special session to address or roll back the state gas tax.\n\n**Janitorial Services Bid**\nThe commission reviewed a revised bid for janitorial services submitted by Mike Kenney. The updated bid included several additions requested by the board, including provisions for bonding. A motion to accept the janitorial services bid from Mike Kenney was made, seconded, and approved unanimously by the board. \n\n**Old Jail Property and Insurance Costs**\nThe board discussed the ongoing dilemma regarding the old county jail. Commissioners expressed a desire to speak with a realtor to evaluate the property's potential. A key point raised was the holding cost of the vacant building; it was noted that the county currently pays approximately $4,300 annually just for insurance on the property. While tearing the building down is an option, commissioners noted that demolition costs are currently exorbitant. The board agreed to continue evaluating the property to determine if they can sell it or otherwise get it off the county's financial rolls.\n\n**Sheriff’s Department and Jail Operations**\nTom, representing the sheriff's department, presented several contracts and updates for the board's approval:\n*   **EOC Internet Service:** A contract to upgrade and provide internet service at the Emergency Operations Center (EOC). During this discussion, it was discovered that the county is paying $87 monthly for local internet at Carl Harper's office. The board requested that this redundant service be canceled once the new system is operational.\n*   **Detention Officer Training:** A contract for a new training platform aligned with the National Institute of Jail Operations (NITO) accreditation standards. This platform will provide structured, certified training for detention staff from day one, helping to reduce liability and meet insurance requirements.\n*   **Jail Management Software:** Tom reported significant issues with the current jail management vendor, Omnigo (also referred to as Jail Tracker), citing poor communication, delays, and missing licenses. Consequently, the department is switching to Cadence Software. Met at a recent jail conference, Cadence was designed by a jail administrator, making it more intuitive and cheaper than the previous system, with all software integrations included. The transition deadline is set for June 1st. The board signed the new contract. Tom also noted they are requesting a refund or credit from Omnigo for unfulfilled services. \n\n**Purchasing Card Discussion**\nTom requested an additional county purchasing card (P-card) for his colleague, Andre. He explained the logistical difficulties of traveling for training or making emergency department purchases (such as a replacement microwave) when only one staff member holds the active credit card. While the commission acknowledged the practical need for the card, they expressed caution due to past issues with county credit cards. They noted that they are highly sensitive to P-card distribution but agreed to consider the request to facilitate necessary jail operations.\n\n**Action Items and Adjournment**\nWith the agenda items concluded, the board signed the necessary paperwork and contracts. It was noted that a walkthrough of the courthouse and jail facilities would take place to assess cameras, security, and infrastructure needs. The meeting was subsequently adjourned.\n\nTranscription: https://kurt-croix.github.io/podstr/transcripts/5_28_Ray_Co_Commissioners_Mtg-1779976201.srt"
-        ]
-      ]
-    }
+    "dTag": "2b1c6d69-4315-4260-89d3-bc92d9e35677",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_4_Ray_Co_Commissioners_Mtg-1780602829.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_4_Ray_Co_Commissioners_Mtg-1780602829.srt",
+    "success": true
   }
 ]
