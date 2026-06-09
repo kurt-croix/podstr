@@ -1,6 +1,6 @@
 import { useSeoMeta } from '@unhead/react';
 import { Link } from 'react-router-dom';
-import { Headphones, Rss, Zap, Users, MessageSquare, BookOpen } from 'lucide-react';
+import { Headphones, Rss, Zap, Users, MessageSquare, BookOpen, DollarSign, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -116,7 +116,7 @@ const Index = () => {
             {/* Explore Navigation */}
             <section className="animate-fade-in-up">
               <h2 className="text-3xl font-bold mb-6 gradient-text">Explore</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Link to="/episodes" className="group">
                   <Card className="card-hover border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-transparent h-full">
                     <CardContent className="p-6 text-center space-y-4">
@@ -178,6 +178,36 @@ const Index = () => {
                     </CardContent>
                   </Card>
                 </Link>
+
+                <Link to="/budget/explorer" className="group">
+                  <Card className="card-hover border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-transparent h-full">
+                    <CardContent className="p-6 text-center space-y-4">
+                      <div className="relative">
+                        <DollarSign className="w-12 h-12 mx-auto text-primary group-hover:scale-110 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">Budget Explorer</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Ray County FY2025 budget drill-down by fund, account, and vendor
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <a href="https://kurt-croix.github.io/bloom-check/" target="_blank" rel="noopener noreferrer" className="group">
+                  <Card className="card-hover border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-transparent h-full">
+                    <CardContent className="p-6 text-center space-y-4">
+                      <div className="relative">
+                        <ShieldCheck className="w-12 h-12 mx-auto text-primary group-hover:scale-110 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">Bloom-Check</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Audit public files and verify government transparency
+                      </p>
+                    </CardContent>
+                  </Card>
+                </a>
               </div>
             </section>
 

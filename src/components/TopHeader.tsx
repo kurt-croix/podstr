@@ -25,6 +25,11 @@ export function TopHeader({ className }: TopHeaderProps) {
       "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm",
       className
     )}>
+      {/* Campaign banner */}
+      <div className="bg-[#e60000] text-white text-center py-1.5 text-sm font-semibold tracking-wide">
+        Vote Kurt Croix for Ray County Clerk Aug 4th
+      </div>
+
       <div className="container mx-auto lg:max-w-none lg:mx-0 px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Hamburger Menu + Logo */}
