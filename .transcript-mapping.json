@@ -1,58 +1,8 @@
 [
   {
-    "dTag": "2b1c6d69-4315-4260-89d3-bc92d9e35677",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_4_Ray_Co_Commissioners_Mtg-1780579453.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_4_Ray_Co_Commissioners_Mtg-1780579453.srt",
-    "success": true,
-    "event": {
-      "content": "",
-      "created_at": 1780579453,
-      "id": "a20e5d431455714d8542139be11f011936beed47a5305d4c205251b34e6c96c9",
-      "kind": 30054,
-      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "078f54fbf363d810707364ca9ebc4ff4f51d650881962ca057a4130cb86a801b9f9eddf307b8621955c9f4aef2de28245ad3e2a64e9f22d5551c295e712fb466",
-      "tags": [
-        [
-          "d",
-          "2b1c6d69-4315-4260-89d3-bc92d9e35677"
-        ],
-        [
-          "title",
-          "6/4, Ray Co Commissioners Mtg"
-        ],
-        [
-          "summary",
-          "Ray County Commissioner's meetings streaming"
-        ],
-        [
-          "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/f5f0335198174144985e10bac3784f54/downloads/default.mp4?filename=6-4-ray-co-commissioners-mtg"
-        ],
-        [
-          "image",
-          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
-        ],
-        [
-          "duration",
-          "0"
-        ],
-        [
-          "alt",
-          "Podcast episode: 6/4, Ray Co Commissioners Mtg"
-        ],
-        [
-          "client",
-          "podstr-github-actions"
-        ],
-        [
-          "t",
-          "livestream"
-        ],
-        [
-          "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:2b1c6d69-4315-4260-89d3-bc92d9e35677"
-        ]
-      ]
-    }
+    "dTag": "843cb3da-aa50-4d10-9717-c3bb59878e63",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_11_Ray_Co_Commissioners_Mtg-1781208505.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_11_Ray_Co_Commissioners_Mtg-1781208505.srt",
+    "success": true
   }
 ]
