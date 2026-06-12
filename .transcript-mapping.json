@@ -1,8 +1,58 @@
 [
   {
     "dTag": "843cb3da-aa50-4d10-9717-c3bb59878e63",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_11_Ray_Co_Commissioners_Mtg-1781208505.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_11_Ray_Co_Commissioners_Mtg-1781208505.srt",
-    "success": true
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_11_Ray_Co_Commissioners_Mtg-1781185860.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_11_Ray_Co_Commissioners_Mtg-1781185860.srt",
+    "success": true,
+    "event": {
+      "content": "",
+      "created_at": 1781185860,
+      "id": "1635c7a29a5692572fd996ffce7e12ff79a9ef52556dc4a4461e09c23e9643ab",
+      "kind": 30054,
+      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
+      "sig": "0e0c204867e3d81d5b736a333f6dfa144fbc9349e0be4c57ad0f4ca6669b73ad02ebbb93ee8b62a9e81d4d537f8c4af2be557ad9c1c82f5b3cca8a2e1fdeaf4d",
+      "tags": [
+        [
+          "d",
+          "843cb3da-aa50-4d10-9717-c3bb59878e63"
+        ],
+        [
+          "title",
+          "6/11, Ray Co Commissioners Mtg"
+        ],
+        [
+          "summary",
+          "Ray County Commissioner's meetings streaming"
+        ],
+        [
+          "audio",
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/529a115dd136c5ab52a24f9c9734b5d2/downloads/default.mp4?filename=6-11-ray-co-commissioners-mtg"
+        ],
+        [
+          "image",
+          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
+        ],
+        [
+          "duration",
+          "0"
+        ],
+        [
+          "alt",
+          "Podcast episode: 6/11, Ray Co Commissioners Mtg"
+        ],
+        [
+          "client",
+          "podstr-github-actions"
+        ],
+        [
+          "t",
+          "livestream"
+        ],
+        [
+          "livestream",
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:843cb3da-aa50-4d10-9717-c3bb59878e63"
+        ]
+      ]
+    }
   }
 ]
