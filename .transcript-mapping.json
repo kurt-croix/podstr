@@ -1,8 +1,58 @@
 [
   {
-    "dTag": "b8b396e3-8ae9-42b8-abe9-21947f129202",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_17_Ray_Co_Commissioners_Mtg-1781726155.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_17_Ray_Co_Commissioners_Mtg-1781726155.srt",
-    "success": true
+    "dTag": "031f5e84-3782-4231-bac2-5535c646752b",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Coalition_Forum-1781716219.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Coalition_Forum-1781716219.srt",
+    "success": true,
+    "event": {
+      "content": "",
+      "created_at": 1781716219,
+      "id": "dd8a32b75bf6501df40988484f4e25337337c46b429f8cbbf8625dc71f583333",
+      "kind": 30054,
+      "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
+      "sig": "c44f89dfbe389c6d9a1cb2223a771619baad60e53090330cf4c8449eae3e46432ab1106cdc924edb141b372ff5a123abfebb0d7076722926693f18e067eab4ef",
+      "tags": [
+        [
+          "d",
+          "031f5e84-3782-4231-bac2-5535c646752b"
+        ],
+        [
+          "title",
+          "Ray County Coalition Forum"
+        ],
+        [
+          "summary",
+          "Ray County Commissioner's meetings streaming"
+        ],
+        [
+          "audio",
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/2f8aecb706792791a57cf68ff3599bbd/downloads/default.mp4?filename=ray-county-coalition-forum"
+        ],
+        [
+          "image",
+          "https://image.nostr.build/c86663f2aca65e97b47f668f901d52826a690be1405d8068c7d81594358a0ba1.png"
+        ],
+        [
+          "duration",
+          "0"
+        ],
+        [
+          "alt",
+          "Podcast episode: Ray County Coalition Forum"
+        ],
+        [
+          "client",
+          "podstr-github-actions"
+        ],
+        [
+          "t",
+          "livestream"
+        ],
+        [
+          "livestream",
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:031f5e84-3782-4231-bac2-5535c646752b"
+        ]
+      ]
+    }
   }
 ]
