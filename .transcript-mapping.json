@@ -1,24 +1,24 @@
 [
   {
-    "dTag": "031f5e84-3782-4231-bac2-5535c646752b",
-    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/Ray_County_Coalition_Forum-1781716219.srt",
-    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/Ray_County_Coalition_Forum-1781716219.srt",
+    "dTag": "b8b396e3-8ae9-42b8-abe9-21947f129202",
+    "transcriptPath": "/home/runner/work/podstr/podstr/transcripts/6_17_Ray_Co_Commissioners_Mtg-1781704111.srt",
+    "transcriptUrl": "https://kurt-croix.github.io/podstr/transcripts/6_17_Ray_Co_Commissioners_Mtg-1781704111.srt",
     "success": true,
     "event": {
       "content": "",
-      "created_at": 1781716219,
-      "id": "dd8a32b75bf6501df40988484f4e25337337c46b429f8cbbf8625dc71f583333",
+      "created_at": 1781704111,
+      "id": "798f5f92d1492cb6ea1496f033e0aaf891dd11def036737d514f3829935e5a49",
       "kind": 30054,
       "pubkey": "f38a7f8e088ea727e316b990da29cdf8d13352b5fa095941114b83fefa4b67fa",
-      "sig": "c44f89dfbe389c6d9a1cb2223a771619baad60e53090330cf4c8449eae3e46432ab1106cdc924edb141b372ff5a123abfebb0d7076722926693f18e067eab4ef",
+      "sig": "d131200770752b8b979905c58393da21ca0347d5a75d5396f75ad352f771f5ef5a4879623d0702117dae3bb8b914cbbf72db5fd56e477445171544a3fb103147",
       "tags": [
         [
           "d",
-          "031f5e84-3782-4231-bac2-5535c646752b"
+          "b8b396e3-8ae9-42b8-abe9-21947f129202"
         ],
         [
           "title",
-          "Ray County Coalition Forum"
+          "6/17, Ray Co Commissioners Mtg"
         ],
         [
           "summary",
@@ -26,7 +26,7 @@
         ],
         [
           "audio",
-          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/2f8aecb706792791a57cf68ff3599bbd/downloads/default.mp4?filename=ray-county-coalition-forum"
+          "https://customer-51tzzrmdygiq19h7.cloudflarestream.com/04ee269e52eb3d86c1077b23cca6780a/downloads/default.mp4?filename=6-17-ray-co-commissioners-mtg"
         ],
         [
           "image",
@@ -38,7 +38,7 @@
         ],
         [
           "alt",
-          "Podcast episode: Ray County Coalition Forum"
+          "Podcast episode: 6/17, Ray Co Commissioners Mtg"
         ],
         [
           "client",
@@ -50,7 +50,11 @@
         ],
         [
           "livestream",
-          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:031f5e84-3782-4231-bac2-5535c646752b"
+          "30311:85df822a86599ffbe8143db1e1e1bf2d162fa60fc685c65515963e67cfd7499f:b8b396e3-8ae9-42b8-abe9-21947f129202"
+        ],
+        [
+          "pubdate",
+          "Wed, 17 Jun 2026 13:48:30 GMT"
         ]
       ]
     }
