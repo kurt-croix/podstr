@@ -8,23 +8,73 @@ import { NSyteBunkerSigner } from './nsyte-bunker-minimal';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { getPublicKey } from 'nostr-tools';
 
+/**
+ * Strip Hugging Face access tokens and other bearer tokens from a URL.
+ * Removes `token=...`, `hf_token=...` query params and any `hf_...` literals.
+ * Prevents credential leakage into Nostr events and committed JSON artifacts.
+ */
+export function redactUrlSecrets(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Drop known token-bearing params from any host.
+    for (const key of ['token', 'hf_token', 'access_token', 'jwt']) {
+      parsed.searchParams.delete(key);
+    }
+    let cleaned = parsed.toString();
+    // Final sweep for any inline hf_ literals (defensive).
+    cleaned = cleaned.replace(/hf_[A-Za-z0-9]{20,}/g, '[REDACTED]');
+    return cleaned;
+  } catch {
+    // Not a parseable URL — scrub token-like literals anyway.
+    return url.replace(/hf_[A-Za-z0-9]{20,}/g, '[REDACTED]');
+  }
+}
+
+/**
+ * Recursively redact Hugging Face token literals from any string in a Nostr event
+ * (tags, content). Used before serializing events to disk to satisfy GitHub
+ * push protection and avoid leaking credentials to Nostr relays.
+ */
+export function redactEventSecrets<T extends NostrEvent>(event: T): T {
+  const scrub = (s: string) => s.replace(/hf_[A-Za-z0-9]{20,}/g, '[REDACTED]');
+  return {
+    ...event,
+    content: scrub(event.content),
+    tags: event.tags.map((tag) =>
+      tag.map((value) => (typeof value === 'string' ? scrub(redactUrlSecrets(value)) : value)),
+    ),
+  };
+}
+
 export function extractRecordingUrl(livestream: NostrEvent): string | null {
   const download = livestream.tags.find(([name]) => name === 'download')?.[1];
   if (download) {
-    console.log('✅ Found download tag (Shoshou recording):', download);
-    return download;
+    const safe = redactUrlSecrets(download);
+    if (safe !== download) {
+      console.warn('🔐 Stripped credentials from download URL before publishing');
+    }
+    console.log('✅ Found download tag (Shoshou recording):', safe);
+    return safe;
   }
 
   const recording = livestream.tags.find(([name]) => name === 'recording')?.[1];
   if (recording) {
-    console.log('✅ Found recording tag:', recording);
-    return recording;
+    const safe = redactUrlSecrets(recording);
+    if (safe !== recording) {
+      console.warn('🔐 Stripped credentials from recording URL before publishing');
+    }
+    console.log('✅ Found recording tag:', safe);
+    return safe;
   }
 
   const streaming = livestream.tags.find(([name]) => name === 'streaming')?.[1];
   if (streaming) {
-    console.warn('⚠️  Using streaming URL instead of recording (quality may be poor):', streaming);
-    return streaming;
+    const safe = redactUrlSecrets(streaming);
+    if (safe !== streaming) {
+      console.warn('🔐 Stripped credentials from streaming URL before publishing');
+    }
+    console.warn('⚠️  Using streaming URL instead of recording (quality may be poor):', safe);
+    return safe;
   }
 
   console.error('❌ No download, recording, or streaming URL found');

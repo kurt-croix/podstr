@@ -15,6 +15,7 @@ import { exec, spawn } from 'child_process';
 import { EpisodeMetadata } from './lib/conversion-types';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { queryRelay } from './lib/relay-query';
+import { redactEventSecrets } from './lib/conversion-utils';
 
 interface TranscriptionResult {
   dTag: string;
@@ -488,8 +489,15 @@ async function main() {
     console.warn('⚠️  Failed to cleanup temp directory:', error);
   }
 
-  // Save transcript mapping
-  await fs.writeFile(TRANSCRIPT_MAPPING_PATH, JSON.stringify(results, null, 2));
+  // Save transcript mapping.
+  // Redact any embedded Hugging Face tokens from events before writing to disk
+  // so credentials never enter the git history (GitHub push protection blocks
+  // commits containing HF user access tokens).
+  const sanitized = results.map(({ event, ...rest }) => ({
+    ...rest,
+    ...(event ? { event: redactEventSecrets(event) } : {}),
+  }));
+  await fs.writeFile(TRANSCRIPT_MAPPING_PATH, JSON.stringify(sanitized, null, 2));
   console.log(`💾 Transcript mapping saved to: ${TRANSCRIPT_MAPPING_PATH}`);
 
   // Log summary

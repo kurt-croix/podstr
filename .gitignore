@@ -37,4 +37,10 @@ dist-ssr
 .temp-audio/
 .temp-audio-transcription/
 
+# Transcription / pipeline intermediate artifacts
+# (These may embed Nostr events with upstream URLs; never commit them.)
+.episodes-to-transcribe.json
+.transcript-mapping.json
+.show-notes-mapping.json
+
 # Transcription temp files
