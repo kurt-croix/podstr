@@ -375,18 +375,29 @@ async function backfillOneEpisode(nostrPrivateKey: string): Promise<void> {
     return;
   }
 
-  // Download transcript
+  // Download transcript. The WebVTT migration (commit 06f01f9) renamed
+  // `.txt` transcripts to `.vtt`, but some older episode events still carry
+  // a `.txt` transcript URL. Try the URL as-is, then fall back to `.vtt`
+  // before giving up — and never let a single missing transcript kill the
+  // whole pipeline run.
   console.log(`   📥 Downloading transcript: ${transcriptUrl}`);
-  const response = await fetch(transcriptUrl);
+  let response = await fetch(transcriptUrl);
+  if (!response.ok && transcriptUrl.endsWith('.txt')) {
+    const vttUrl = transcriptUrl.replace(/\.txt$/, '.vtt');
+    console.log(`   ⚠️  ${response.status}, trying WebVTT URL: ${vttUrl}`);
+    response = await fetch(vttUrl);
+  }
   if (!response.ok) {
-    throw new Error(`Failed to download transcript: ${response.status}`);
+    console.warn(`   ⚠️  Transcript unavailable (HTTP ${response.status}) — skipping episode`);
+    return;
   }
   const srtContent = await response.text();
 
   // Parse SRT
   const entries = parseSrt(srtContent);
   if (entries.length === 0) {
-    throw new Error('No SRT entries found in transcript');
+    console.warn(`   ⚠️  No SRT entries found in transcript — skipping episode`);
+    return;
   }
   console.log(`   📊 Parsed ${entries.length} SRT entries`);
 
